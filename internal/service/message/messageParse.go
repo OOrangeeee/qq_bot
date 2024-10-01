@@ -32,9 +32,11 @@ func MessageParse(c echo.Context) error {
 			ansTmp, err := service.GetInfoOfRepo(repo.Url)
 			if err != nil {
 				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", repoName)
+				ans += "\n"
 				continue
 			}
 			ans += ansTmp
+			ans += "\n"
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": ans,
@@ -79,6 +81,26 @@ func MessageParse(c echo.Context) error {
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": ans,
+		})
+	} else if delItem, ok := matchGithubDel(message); ok {
+		// 删除仓库信息
+		for _, repoName := range delItem {
+			repo, err := database.Redis.GetRepo(repoName)
+			if err != nil {
+				continue
+			}
+			if repo == nil {
+				continue
+			}
+			err = database.Redis.DeleteRepo(repo)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]interface{}{
+					"message": "删除仓库信息失败",
+				})
+			}
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"reply": "橙子报告！删除仓库信息成功！！！",
 		})
 	} else if strings.Contains(message, "宁静") || strings.Contains(message, "nxj") || strings.Contains(message, "宁小静") || strings.Contains(message, "柠檬头") || strings.Contains(message, "柠檬") || strings.Contains(message, "lemon") || strings.Contains(message, "Lemon") || strings.Contains(message, "nmt") {
 		return c.JSON(http.StatusOK, map[string]interface{}{
@@ -139,5 +161,26 @@ func matchGithubSet(input string) ([]string, bool) {
 		}
 	}
 
+	return nil, false
+}
+
+// matchGithubDel 检查字符串是否符合 "/gb-del *****" 模式，并返回匹配后的非空格字符串切片和匹配结果
+func matchGithubDel(input string) ([]string, bool) {
+	// 编译正则表达式，用于捕获非空格字符串
+	regex, err := regexp.Compile(`^/gb-del\s+(\S+)$`)
+	if err != nil {
+		fmt.Println("Invalid regex:", err)
+		return nil, false
+	}
+
+	// 检查字符串是否匹配正则表达式
+	if regex.MatchString(input) {
+		// 使用 FindStringSubmatch 获取所有匹配的部分，其中第一个元素是整个匹配，后续元素是捕获的子表达式
+		matches := regex.FindStringSubmatch(input)
+		if len(matches) > 1 {
+			// 返回捕获的子表达式（非空格字符串）
+			return matches[1:], true
+		}
+	}
 	return nil, false
 }

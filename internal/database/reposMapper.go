@@ -7,7 +7,7 @@ func AddNewRepo(newRepo *model.GbRepos) error {
 }
 
 func DeleteUnscopedRepo(repo *model.GbRepos) error {
-	return DB.DataBase.Unscoped().Delete(repo).Error
+	return DB.DataBase.Unscoped().Where("id = ?", repo.ID).Delete(repo).Error
 }
 
 func UpdateRepo(repo *model.GbRepos) error {

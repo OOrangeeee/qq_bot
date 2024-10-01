@@ -1,7 +1,6 @@
 package service
 
 import (
-	"GitHubBot/internal/config"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -33,9 +32,14 @@ type Branch struct {
 	} `json:"commit"`
 }
 
-// RepoInfo 实现核心函数
 func GetInfoOfRepo(url string) (string, error) {
 	owner, repo := extractOwnerRepo(url)
+
+	// 获取所有分支信息
+	branches, err := getBranches(owner, repo)
+	if err != nil {
+		return "", err
+	}
 
 	// 获取所有提交信息
 	commits, err := getAllCommits(owner, repo)
@@ -53,22 +57,19 @@ func GetInfoOfRepo(url string) (string, error) {
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	latestCommitTimeInChina := latestCommitTime.In(loc)
 
-	// 获取所有分支信息
-	branches, err := getBranches(owner, repo)
-	if err != nil {
-		return "", err
-	}
-
 	// 获取仓库贡献最多的提交者
 	mainContributor := getMainContributorFromCommits(commits)
 
-	// 开始拼接结果字符串
-	result := fmt.Sprintf("+++++\nName: %s\nMain Commit Num: %d\nLast Commit: %s\nBest Contributor: %s\n", repo, commitNum, latestCommitTimeInChina.Format("2006-01-02 15:04:05"), mainContributor)
+	// 拼接结果字符串
+	result := fmt.Sprintf("+++++\n仓库名称: %s\nmain分支提交总数: %d\n最近一次提交: %s\n最佳贡献者: %s\n", repo, commitNum, latestCommitTimeInChina.Format("2006-01-02 15:04:05"), mainContributor)
 
 	// 遍历每个分支并获取最近一次提交的 message 及最多贡献者
 	for _, branch := range branches {
-		lastCommitMsg, mostContributor := getBranchCommitInfo(commits, branch.Name)
-		result += fmt.Sprintf("Branch-%s: last commit: \"%s\", Most Contributor: %s\n", branch.Name, lastCommitMsg, mostContributor)
+		lastCommitMsg, mostContributor, err := getBranchCommitInfo(owner, repo, branch.Name)
+		if err != nil {
+			return "", err
+		}
+		result += fmt.Sprintf("分支-%s: 最近一次提交: \"%s\", 本分支最佳贡献者: %s\n", branch.Name, lastCommitMsg, mostContributor)
 	}
 
 	result += "+++++\n"
@@ -143,22 +144,34 @@ func getBranches(owner, repo string) ([]Branch, error) {
 	return branches, nil
 }
 
-// getBranchCommitInfo 从所有提交中获取分支的最后一次提交信息及贡献最多者
-func getBranchCommitInfo(commits []CommitInfo, branch string) (string, string) {
-	branchCommits := []CommitInfo{}
-	contributors := make(map[string]int)
-	var lastCommit CommitInfo
-
-	// 筛选属于该分支的提交
-	for _, commit := range commits {
-		branchCommits = append(branchCommits, commit)
-		contributors[commit.Author.Login]++
-		if lastCommit.Commit.Author.Date.Before(commit.Commit.Author.Date) {
-			lastCommit = commit
-		}
+// getBranchCommitInfo 从 GitHub API 获取分支的最后一次提交信息及贡献最多者
+func getBranchCommitInfo(owner, repo, branch string) (string, string, error) {
+	// 使用 GitHub API 请求特定分支的提交记录
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?sha=%s", owner, repo, branch)
+	resp, err := makeGitHubRequest(url)
+	if err != nil {
+		return "", "", err
 	}
 
-	// 找出分支贡献最多的用户
+	var commits []CommitInfo
+	if err := json.Unmarshal(resp, &commits); err != nil {
+		return "", "", err
+	}
+
+	// 如果该分支没有提交记录
+	if len(commits) == 0 {
+		return "No commits found", "", nil
+	}
+
+	// 获取最近一次提交
+	lastCommit := commits[0]
+
+	// 找出该分支的贡献最多的用户
+	contributors := make(map[string]int)
+	for _, commit := range commits {
+		contributors[commit.Author.Login]++
+	}
+
 	mostContributor := ""
 	maxCommits := 0
 	for contributor, count := range contributors {
@@ -168,7 +181,8 @@ func getBranchCommitInfo(commits []CommitInfo, branch string) (string, string) {
 		}
 	}
 
-	return lastCommit.Commit.Message, mostContributor
+	// 返回最近一次提交的 message 及贡献最多的用户
+	return lastCommit.Commit.Message, mostContributor, nil
 }
 
 // makeGitHubRequest 封装 API 请求
@@ -180,7 +194,7 @@ func makeGitHubRequest(url string) ([]byte, error) {
 	}
 
 	// 设置请求头
-	req.Header.Set("Authorization", "Bearer "+config.Config.AppConfig.Github.Token)
+	req.Header.Set("Authorization", "Bearer "+"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")
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := client.Do(req)
