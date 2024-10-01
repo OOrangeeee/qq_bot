@@ -52,7 +52,7 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": fmt.Sprintf("添加仓库 %s 成功", repoName),
+			"reply": fmt.Sprintf("橙子报告！添加仓库 %s 成功！！！", repoName),
 		})
 	} else if strings.EqualFold(message, "/gb-get-all") {
 		// 获取所有仓库信息
