@@ -26,6 +26,7 @@ var Config configCenter
 
 func (c *configCenter) InitConfig(env string, e *echo.Echo) {
 	err := c.GetAppConfig()
+	c.Flags = make(map[string]string)
 	c.Flags["env"] = env
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{

@@ -4,6 +4,7 @@ type AppConfig struct {
 	Hmac     hmac           `json:"hmac"`
 	DataBase dataBaseConfig `json:"data-base"`
 	Redis    redisConfig    `json:"redis"`
+	Github   githubConfig   `json:"github"`
 }
 
 type hmac struct {
@@ -22,4 +23,8 @@ type redisConfig struct {
 	TaskChannelSize              int     `json:"task-channel-size"`
 	BloomFilterCapacity          uint    `json:"bloom-filter-capacity"`
 	BloomFilterFalsePositiveRate float64 `json:"bloom-filter-false-positive-rate"`
+}
+
+type githubConfig struct {
+	Token string `json:"token"`
 }

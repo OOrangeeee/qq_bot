@@ -1,13 +1,14 @@
 package controller
 
 import (
-	service "GitHubBot/internal/service/event"
+	eventService "GitHubBot/internal/service/event"
+	service "GitHubBot/internal/service/message"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func SolveEvent(c echo.Context) error {
-	eventType, err := service.GetEvent(c)
+	eventType, err := eventService.GetEvent(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"error": err.Error(),

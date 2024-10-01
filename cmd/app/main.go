@@ -4,6 +4,7 @@ import (
 	"GitHubBot/internal/config"
 	"GitHubBot/internal/database"
 	"GitHubBot/internal/log"
+	"GitHubBot/internal/route"
 	"flag"
 	"github.com/labstack/echo/v4"
 )
@@ -19,5 +20,6 @@ func main() {
 	database.InitDataBase()
 	database.InitRedis()
 	defer database.Redis.Exit()
+	route.Route(e)
 	e.Logger.Fatal(e.Start(":2077"))
 }
