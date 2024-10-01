@@ -54,7 +54,9 @@ func HMACMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		bodyBytes, err := io.ReadAll(c.Request().Body)
 		if err != nil {
-			return c.String(http.StatusInternalServerError, "读取请求体失败")
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"message": "读取请求体失败",
+			})
 		}
 		// 重新设置请求体，以便后续处理逻辑使用
 		c.Request().Body = io.NopCloser(c.Request().Body)
@@ -64,7 +66,9 @@ func HMACMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		expectedMAC := hex.EncodeToString(mac.Sum(nil))
 		receivedMAC := c.Request().Header.Get("X-Signature")[len("sha1="):]
 		if !hmac.Equal([]byte(expectedMAC), []byte(receivedMAC)) {
-			return c.String(http.StatusUnauthorized, "HMAC 验证失败")
+			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
+				"message": "HMAC 验证失败",
+			})
 		}
 		return next(c)
 	}
