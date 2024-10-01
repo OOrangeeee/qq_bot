@@ -1,13 +1,13 @@
 package model
 
 type Event struct {
-	Time        string `json:"time"`
-	SelfId      string `json:"self_id"`
+	Time        uint   `json:"time"`
+	SelfId      uint   `json:"self_id"`
 	PostType    string `json:"post_type"`
 	MessageType string `json:"message_type"`
 	SubType     string `json:"sub_type"`
-	MessageId   int    `json:"message_id"`
-	UserId      int    `json:"user_id"`
+	MessageId   uint   `json:"message_id"`
+	UserId      uint   `json:"user_id"`
 	Message     string `json:"message"`
 	RawMessage  string `json:"raw_message"`
 	Font        int    `json:"font"`

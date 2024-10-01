@@ -3,6 +3,7 @@ package config
 import (
 	"GitHubBot/internal/log"
 	"GitHubBot/internal/model"
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
@@ -12,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
@@ -48,11 +50,42 @@ func (c *configCenter) initMiddleware(e *echo.Echo) {
 		MaxAge:       3600,
 	}))
 
+	/*	// RequestLoggerMiddleware
+		e.Use(RequestLoggerMiddleware)*/
+
 	// HMACMiddleware
 	e.Use(HMACMiddleware)
+
 }
 
-// HMACMiddleware HMAC 验证中间件
+func RequestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// 打印请求方法和请求路径
+		log.Log.Info("Method: %s, Path: %s", c.Request().Method, c.Request().URL.Path)
+
+		// 打印所有请求头
+		for header, values := range c.Request().Header {
+			for _, value := range values {
+				log.Log.Info("Header: %s, Value: %s", header, value)
+			}
+		}
+
+		// 读取并打印请求体
+		bodyBytes, err := ioutil.ReadAll(c.Request().Body)
+		if err != nil {
+			log.Log.Info("Error reading body: %s", err)
+			return err
+		}
+		// 重新设置请求体，以便后续处理逻辑可以使用
+		c.Request().Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+
+		log.Log.Info("Body: %s", string(bodyBytes))
+
+		// 继续处理请求
+		return next(c)
+	}
+}
+
 func HMACMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		bodyBytes, err := io.ReadAll(c.Request().Body)
@@ -62,12 +95,21 @@ func HMACMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			})
 		}
 		// 重新设置请求体，以便后续处理逻辑使用
-		c.Request().Body = io.NopCloser(c.Request().Body)
+		c.Request().Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+		// 从请求头中获取签名
+		signatureHeader := c.Request().Header.Get("X-Signature")
+		if len(signatureHeader) < len("sha1=") {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": "X-Signature 请求头格式错误或缺失",
+			})
+		}
+
 		// 计算 HMAC SHA1
 		mac := hmac.New(sha1.New, []byte(Config.AppConfig.Hmac.Key))
 		mac.Write(bodyBytes)
 		expectedMAC := hex.EncodeToString(mac.Sum(nil))
-		receivedMAC := c.Request().Header.Get("X-Signature")[len("sha1="):]
+		receivedMAC := signatureHeader[len("sha1="):]
 		if !hmac.Equal([]byte(expectedMAC), []byte(receivedMAC)) {
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"message": "HMAC 验证失败",

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"GitHubBot/internal/config"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,9 +9,6 @@ import (
 	"strings"
 	"time"
 )
-
-// 全局变量存储 GitHub 认证 token
-var Token = "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"
 
 // CommitInfo 定义提交信息的结构
 type CommitInfo struct {
@@ -182,7 +180,7 @@ func makeGitHubRequest(url string) ([]byte, error) {
 	}
 
 	// 设置请求头
-	req.Header.Set("Authorization", "Bearer "+Token)
+	req.Header.Set("Authorization", "Bearer "+config.Config.AppConfig.Github.Token)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := client.Do(req)

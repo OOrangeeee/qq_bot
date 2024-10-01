@@ -269,6 +269,18 @@ func (rt *RedisTool) GetRepo(name string) (*model.GbRepos, error) {
 	return &repo, nil
 }
 
+func (rt *RedisTool) GetAllReposName() ([]string, error) {
+	// 从数据库获取
+	repos, err := GetAllReposName()
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("获取所有仓库名失败")
+		return nil, err
+	}
+	return repos, nil
+}
+
 func (rt *RedisTool) cachePreheating() {
 	names, err := GetAllReposName()
 	if err != nil {

@@ -54,6 +54,32 @@ func MessageParse(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": fmt.Sprintf("添加仓库 %s 成功", repoName),
 		})
+	} else if strings.EqualFold(message, "/gb-get-all") {
+		// 获取所有仓库信息
+		allNames, err := database.Redis.GetAllReposName()
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": "获取所有仓库名失败",
+			})
+		}
+		var ans string
+		for _, name := range allNames {
+			repo, err := database.Redis.GetRepo(name)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]interface{}{
+					"message": "获取仓库信息失败",
+				})
+			}
+			ansTmp, err := service.GetInfoOfRepo(repo.Url)
+			if err != nil {
+				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", name)
+				continue
+			}
+			ans += ansTmp
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"reply": ans,
+		})
 	} else if strings.Contains(message, "宁静") || strings.Contains(message, "nxj") || strings.Contains(message, "宁小静") || strings.Contains(message, "柠檬头") || strings.Contains(message, "柠檬") || strings.Contains(message, "lemon") || strings.Contains(message, "Lemon") || strings.Contains(message, "nmt") {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": "你刚刚是提到宁静了吗？其实啊！宁静是个大笨蛋！！宇宙超级无敌大笨蛋哇嘎嘎嘎嘎嘎！！！",
