@@ -19,12 +19,14 @@ import (
 
 type configCenter struct {
 	AppConfig *model.AppConfig
+	Flags     map[string]string
 }
 
 var Config configCenter
 
-func (c *configCenter) InitConfig(e *echo.Echo) {
+func (c *configCenter) InitConfig(env string, e *echo.Echo) {
 	err := c.GetAppConfig()
+	c.Flags["env"] = env
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),

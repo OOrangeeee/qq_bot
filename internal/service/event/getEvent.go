@@ -25,5 +25,5 @@ func GetEvent(c echo.Context) (string, error) {
 		return "", err
 	}
 	c.Set("event", event)
-	return event.MessageType, nil
+	return event.PostType, nil
 }
