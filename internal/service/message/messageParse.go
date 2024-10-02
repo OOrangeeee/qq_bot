@@ -1,13 +1,16 @@
 package service
 
 import (
+	"GitHubBot/internal/config"
 	"GitHubBot/internal/database"
 	"GitHubBot/internal/model"
-	service "GitHubBot/internal/service/github"
+	githubService "GitHubBot/internal/service/github"
+	llmService "GitHubBot/internal/service/llm"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -20,6 +23,9 @@ func MessageParse(c echo.Context) error {
 		})
 	}
 	message := event.Message
+	message_type := event.MessageType
+	fromIdStr := event.UserId
+	fromId := strconv.Itoa(int(fromIdStr))
 	if repos, ok := matchGithubGet(message); ok {
 		var ans string
 		for _, repoName := range repos {
@@ -40,7 +46,7 @@ func MessageParse(c echo.Context) error {
 					"reply": "橙子报告！从数据库获取仓库信息失败呜呜呜",
 				})
 			}
-			ansTmp, err := service.GetInfoOfRepo(repo.RepoName, repo.Url)
+			ansTmp, err := githubService.GetInfoOfRepo(repo.RepoName, repo.Url)
 			if err != nil {
 				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败, Url为 %s \n+++++\n", repoName, repo.Url)
 				ans += "\n"
@@ -114,10 +120,43 @@ func MessageParse(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": ans,
 		})
-	} else {
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": "无效指令",
+	} else if message_type == "private" {
+		var messageSend []llmService.Message
+		messageSend = make([]llmService.Message, 0)
+		messageSend = append(messageSend, llmService.Message{
+			Role:    "user",
+			Content: config.Config.AppConfig.Character.Describe,
 		})
+		vipStr := config.Config.AppConfig.Llm.VipQQ
+		vips := strings.Split(vipStr, ",")
+		isVip := false
+		for _, vip := range vips {
+			if vip == fromId {
+				isVip = true
+				break
+			}
+		}
+		if isVip {
+			messageSend = append(messageSend, llmService.Message{
+				Role:    "user",
+				Content: config.Config.AppConfig.Llm.VipMessage,
+			})
+		}
+		messageSend = append(messageSend, llmService.Message{
+			Role:    "user",
+			Content: message,
+		})
+		ans, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！发送消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"reply": ans,
+		})
+	} else {
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	}
 }
 

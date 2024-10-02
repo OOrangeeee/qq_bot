@@ -244,6 +244,10 @@ func (c *configCenter) GetAppConfig() error {
 	}).Info("获取secrets成功")
 	appConfig.Hmac.Key = secrets["hmac_key"]
 	appConfig.Github.Token = secrets["github_token"]
+	appConfig.Character.Describe = secrets["character_describe"]
+	appConfig.Llm.Secret = secrets["llm_secret"]
+	appConfig.Llm.VipQQ = secrets["llm_vipqq"]
+	appConfig.Llm.VipMessage = secrets["llm_vip_message"]
 	// 判断appConfig是否符合要求
 	if !c.verifyConfig(&appConfig) {
 		log.Log.WithFields(logrus.Fields{
