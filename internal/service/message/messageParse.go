@@ -86,6 +86,17 @@ func MessageParse(c echo.Context) error {
 		// 删除仓库信息
 		var ans string
 		for _, repoName := range delItem {
+			ifExist, err := database.Redis.IfRepoExist(repoName)
+			if err != nil {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！查询仓库是否存在失败呜呜呜",
+				})
+			}
+			if !ifExist {
+				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
+				ans += "-\n"
+				continue
+			}
 			repo, err := database.Redis.GetRepo(repoName)
 			if err != nil {
 				ans += fmt.Sprintf("+++++\n从数据库获取仓库 %s 信息失败\n+++++\n", repoName)
@@ -105,7 +116,7 @@ func MessageParse(c echo.Context) error {
 		})
 	} else {
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "无效指令",
+			"reply": "无效指令",
 		})
 	}
 }
