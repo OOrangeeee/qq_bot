@@ -6,6 +6,7 @@ type AppConfig struct {
 	Redis     redisConfig    `json:"redis"`
 	Github    githubConfig   `json:"github"`
 	Character character      `json:"character"`
+	Llm       llm            `json:"llm"`
 }
 
 type hmac struct {
@@ -32,4 +33,10 @@ type githubConfig struct {
 
 type character struct {
 	Describe string `json:"describe"`
+}
+
+type llm struct {
+	Secret     string `json:"secret"`
+	VipQQ      string `json:"vipqq"`
+	VipMessage string `json:"vip-message"`
 }
