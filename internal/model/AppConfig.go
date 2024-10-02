@@ -1,10 +1,11 @@
 package model
 
 type AppConfig struct {
-	Hmac     hmac           `json:"hmac"`
-	DataBase dataBaseConfig `json:"data-base"`
-	Redis    redisConfig    `json:"redis"`
-	Github   githubConfig   `json:"github"`
+	Hmac      hmac           `json:"hmac"`
+	DataBase  dataBaseConfig `json:"data-base"`
+	Redis     redisConfig    `json:"redis"`
+	Github    githubConfig   `json:"github"`
+	Character character      `json:"character"`
 }
 
 type hmac struct {
@@ -27,4 +28,8 @@ type redisConfig struct {
 
 type githubConfig struct {
 	Token string `json:"token"`
+}
+
+type character struct {
+	Describe string `json:"describe"`
 }
