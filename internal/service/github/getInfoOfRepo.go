@@ -1,9 +1,12 @@
 package service
 
 import (
+	"GitHubBot/internal/config"
+	"GitHubBot/internal/log"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -33,6 +36,7 @@ type Branch struct {
 }
 
 func GetInfoOfRepo(url string) (string, error) {
+	// 从 url 中提取 owner 和 repo 信息
 	owner, repo := extractOwnerRepo(url)
 
 	// 获取所有分支信息
@@ -40,6 +44,9 @@ func GetInfoOfRepo(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// 优先处理 main 和 master 分支
+	prioritizedBranch, branches := prioritizeMainOrMasterBranch(branches)
 
 	// 获取所有提交信息
 	commits, err := getAllCommits(owner, repo)
@@ -61,15 +68,26 @@ func GetInfoOfRepo(url string) (string, error) {
 	mainContributor := getMainContributorFromCommits(commits)
 
 	// 拼接结果字符串
-	result := fmt.Sprintf("+++++\n仓库名称: %s\nmain分支提交总数: %d\n最近一次提交: %s\n最佳贡献者: %s\n", repo, commitNum, latestCommitTimeInChina.Format("2006-01-02 15:04:05"), mainContributor)
+	result := "+++++\n"
+	result += fmt.Sprintf("仓库名称: %s\n", repo)
 
-	// 遍历每个分支并获取最近一次提交的 message 及最多贡献者
+	// 如果存在主分支，显示其信息
+	if prioritizedBranch != "" {
+		result += fmt.Sprintf("主分支名称: %s\nMain分支提交总数: %d\n最近一次提交: %s\n最佳贡献者: %s\n",
+			prioritizedBranch, commitNum, latestCommitTimeInChina.Format("2006-01-02 15:04:05"), mainContributor)
+	} else {
+		result += "没有找到主分支（main 或 master）。\n"
+	}
+
+	// 遍历每个分支并获取最近一次提交的 message 和时间
 	for _, branch := range branches {
-		lastCommitMsg, mostContributor, err := getBranchCommitInfo(owner, repo, branch.Name)
+		lastCommitMsg, lastCommitDate, err := getBranchCommitInfo(branch.Commit.URL)
 		if err != nil {
 			return "", err
 		}
-		result += fmt.Sprintf("分支-%s: 最近一次提交: \"%s\", 本分支最佳贡献者: %s\n", branch.Name, lastCommitMsg, mostContributor)
+		// 将最后一次提交时间转换为中国大陆时间
+		lastCommitDateInChina := lastCommitDate.In(loc)
+		result += fmt.Sprintf("分支-%s: 最近一次提交: \"%s\" 于 %s\n", branch.Name, lastCommitMsg, lastCommitDateInChina.Format("2006-01-02 15:04:05"))
 	}
 
 	result += "+++++\n"
@@ -82,20 +100,33 @@ func extractOwnerRepo(url string) (string, string) {
 	return parts[len(parts)-2], parts[len(parts)-1]
 }
 
-// getAllCommits 一次性获取仓库所有的提交信息
+// getAllCommits 一次性获取仓库所有的提交信息，支持分页
 func getAllCommits(owner, repo string) ([]CommitInfo, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits", owner, repo)
-	resp, err := makeGitHubRequest(url)
-	if err != nil {
-		return nil, err
+	var allCommits []CommitInfo
+	page := 1
+	perPage := 100
+
+	for {
+		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=%d&page=%d", owner, repo, perPage, page)
+		resp, err := makeGitHubRequest(url)
+		if err != nil {
+			return nil, err
+		}
+
+		var commits []CommitInfo
+		if err := json.Unmarshal(resp, &commits); err != nil {
+			return nil, err
+		}
+
+		if len(commits) == 0 {
+			break
+		}
+
+		allCommits = append(allCommits, commits...)
+		page++
 	}
 
-	var commits []CommitInfo
-	if err := json.Unmarshal(resp, &commits); err != nil {
-		return nil, err
-	}
-
-	return commits, nil
+	return allCommits, nil
 }
 
 // getLatestCommitFromCommits 计算所有提交中的最新提交时间
@@ -115,7 +146,6 @@ func getMainContributorFromCommits(commits []CommitInfo) string {
 	for _, commit := range commits {
 		contributors[commit.Author.Login]++
 	}
-
 	mainContributor := ""
 	maxCommits := 0
 	for contributor, count := range contributors {
@@ -124,65 +154,71 @@ func getMainContributorFromCommits(commits []CommitInfo) string {
 			maxCommits = count
 		}
 	}
-
 	return mainContributor
 }
 
-// getBranches 获取仓库的所有分支信息
+// getBranches 获取仓库的所有分支信息，支持分页
 func getBranches(owner, repo string) ([]Branch, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/branches", owner, repo)
-	resp, err := makeGitHubRequest(url)
-	if err != nil {
-		return nil, err
-	}
+	var allBranches []Branch
+	page := 1
+	perPage := 100
 
-	var branches []Branch
-	if err := json.Unmarshal(resp, &branches); err != nil {
-		return nil, err
+	for {
+		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/branches?per_page=%d&page=%d", owner, repo, perPage, page)
+		resp, err := makeGitHubRequest(url)
+		if err != nil {
+			return nil, err
+		}
+		var branches []Branch
+		if err := json.Unmarshal(resp, &branches); err != nil {
+			return nil, err
+		}
+		if len(branches) == 0 {
+			break
+		}
+		allBranches = append(allBranches, branches...)
+		page++
 	}
-
-	return branches, nil
+	return allBranches, nil
 }
 
-// getBranchCommitInfo 从 GitHub API 获取分支的最后一次提交信息及贡献最多者
-func getBranchCommitInfo(owner, repo, branch string) (string, string, error) {
-	// 使用 GitHub API 请求特定分支的提交记录
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?sha=%s", owner, repo, branch)
-	resp, err := makeGitHubRequest(url)
-	if err != nil {
-		return "", "", err
-	}
+// prioritizeMainOrMasterBranch 优先处理 main 或 master 分支
+func prioritizeMainOrMasterBranch(branches []Branch) (string, []Branch) {
+	var mainBranch Branch
+	var masterBranch Branch
+	var otherBranches []Branch
 
-	var commits []CommitInfo
-	if err := json.Unmarshal(resp, &commits); err != nil {
-		return "", "", err
-	}
-
-	// 如果该分支没有提交记录
-	if len(commits) == 0 {
-		return "No commits found", "", nil
-	}
-
-	// 获取最近一次提交
-	lastCommit := commits[0]
-
-	// 找出该分支的贡献最多的用户
-	contributors := make(map[string]int)
-	for _, commit := range commits {
-		contributors[commit.Author.Login]++
-	}
-
-	mostContributor := ""
-	maxCommits := 0
-	for contributor, count := range contributors {
-		if count > maxCommits {
-			mostContributor = contributor
-			maxCommits = count
+	for _, branch := range branches {
+		if branch.Name == "main" {
+			mainBranch = branch
+		} else if branch.Name == "master" {
+			masterBranch = branch
+		} else {
+			otherBranches = append(otherBranches, branch)
 		}
 	}
 
-	// 返回最近一次提交的 message 及贡献最多的用户
-	return lastCommit.Commit.Message, mostContributor, nil
+	if mainBranch.Name != "" {
+		return "main", append([]Branch{mainBranch}, otherBranches...)
+	} else if masterBranch.Name != "" {
+		return "master", append([]Branch{masterBranch}, otherBranches...)
+	}
+	return "", branches
+}
+
+// getBranchCommitInfo 使用分支的 Commit.URL 获取最新提交信息
+func getBranchCommitInfo(commitURL string) (string, time.Time, error) {
+	resp, err := makeGitHubRequest(commitURL)
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	var commit CommitInfo
+	if err := json.Unmarshal(resp, &commit); err != nil {
+		return "", time.Time{}, err
+	}
+
+	return commit.Commit.Message, commit.Commit.Author.Date, nil
 }
 
 // makeGitHubRequest 封装 API 请求
@@ -192,20 +228,25 @@ func makeGitHubRequest(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// 设置请求头
-	req.Header.Set("Authorization", "Bearer "+"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")
+	req.Header.Set("Authorization", "Bearer "+config.Config.AppConfig.Github.Token)
 	req.Header.Set("Accept", "application/vnd.github+json")
-
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("关闭响应体失败")
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to fetch data from GitHub API, status code: %d", resp.StatusCode)
 	}
 
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }

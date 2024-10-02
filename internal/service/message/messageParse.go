@@ -23,20 +23,26 @@ func MessageParse(c echo.Context) error {
 	if repos, ok := matchGithubGet(message); ok {
 		var ans string
 		for _, repoName := range repos {
-			repo, err := database.Redis.GetRepo(repoName)
+			ifExist, err := database.Redis.IfRepoExist(repoName)
 			if err != nil {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！查询仓库是否存在失败呜呜呜",
+				})
+			}
+			if !ifExist {
+				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
+				ans += "-\n"
+				continue
+			}
+			repo, err := database.Redis.GetRepo(repoName)
+			if err != nil || repo == nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！从数据库获取仓库信息失败呜呜呜",
 				})
 			}
-			if repo == nil {
-				return c.JSON(http.StatusOK, map[string]interface{}{
-					"reply": "橙子报告！数据库中没有这个仓库信息呜呜呜",
-				})
-			}
 			ansTmp, err := service.GetInfoOfRepo(repo.Url)
 			if err != nil {
-				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", repoName)
+				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败, Url为 %s \n+++++\n", repoName, repo.Url)
 				ans += "\n"
 				continue
 			}
@@ -61,32 +67,17 @@ func MessageParse(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": fmt.Sprintf("橙子报告！添加仓库 %s 成功！！！", repoName),
 		})
-	} else if strings.EqualFold(message, "/gb-get-all") {
-		// 获取所有仓库信息
-		allNames, err := database.Redis.GetAllReposName()
+	} else if strings.EqualFold(message, "/gb-get-names") {
+		// 获取所有仓库名
+		allNames, err := database.Redis.GetAllReposNames()
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]interface{}{
-				"message": "获取所有仓库名失败",
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！获取所有仓库名失败呜呜呜",
 			})
 		}
 		var ans string
 		for _, name := range allNames {
-			repo, err := database.Redis.GetRepo(name)
-			if err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]interface{}{
-					"message": "获取仓库信息失败",
-				})
-			}
-			if repo == nil {
-				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", name)
-				continue
-			}
-			ansTmp, err := service.GetInfoOfRepo(repo.Url)
-			if err != nil {
-				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", name)
-				continue
-			}
-			ans += ansTmp
+			ans += fmt.Sprintf("+++++\n%s\n", name)
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": ans,
@@ -106,22 +97,11 @@ func MessageParse(c echo.Context) error {
 			if err != nil {
 				ans += fmt.Sprintf("+++++\n删除仓库 %s 信息失败\n+++++\n", repoName)
 			}
+			ans += fmt.Sprintf("+++++\n删除仓库 %s 信息成功\n+++++\n", repoName)
 			ans += "-\n"
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": ans,
-		})
-	} else if strings.Contains(message, "宁静") || strings.Contains(message, "nxj") || strings.Contains(message, "宁小静") || strings.Contains(message, "柠檬头") || strings.Contains(message, "柠檬") || strings.Contains(message, "lemon") || strings.Contains(message, "Lemon") || strings.Contains(message, "nmt") {
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": "你刚刚是提到宁静了吗？其实啊！宁静是个大笨蛋！！宇宙超级无敌大笨蛋哇嘎嘎嘎嘎嘎！！！",
-		})
-	} else if strings.Contains(message, "狗") || strings.Contains(message, "dog") || strings.Contains(message, "Dog") {
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": "狗狗是人类的好朋友，不要随便说狗狗坏话哦！",
-		})
-	} else if strings.Contains(message, "晋晨曦") || strings.Contains(message, "晋馋曦") || strings.Contains(message, "橙子") || strings.Contains(message, "小橙狗") || strings.Contains(message, "小馋狗") || strings.Contains(message, "jcx") || strings.Contains(message, "Jcx") {
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": "你刚刚是提到晋晨曦了吗？你怎么认识世界上最可爱的快乐小狗的？他真的超级聪明，超级可爱，超级快乐哦！",
 		})
 	} else {
 		return c.JSON(http.StatusOK, map[string]interface{}{
