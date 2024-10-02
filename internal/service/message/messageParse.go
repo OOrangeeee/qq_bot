@@ -40,7 +40,7 @@ func MessageParse(c echo.Context) error {
 					"reply": "橙子报告！从数据库获取仓库信息失败呜呜呜",
 				})
 			}
-			ansTmp, err := service.GetInfoOfRepo(repo.Url)
+			ansTmp, err := service.GetInfoOfRepo(repo.RepoName, repo.Url)
 			if err != nil {
 				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败, Url为 %s \n+++++\n", repoName, repo.Url)
 				ans += "\n"

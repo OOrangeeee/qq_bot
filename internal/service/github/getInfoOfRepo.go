@@ -35,7 +35,7 @@ type Branch struct {
 	} `json:"commit"`
 }
 
-func GetInfoOfRepo(url string) (string, error) {
+func GetInfoOfRepo(name, url string) (string, error) {
 	// 从 url 中提取 owner 和 repo 信息
 	owner, repo := extractOwnerRepo(url)
 
@@ -69,6 +69,7 @@ func GetInfoOfRepo(url string) (string, error) {
 
 	// 拼接结果字符串
 	result := "+++++\n"
+	result += fmt.Sprintf("%s\n", name)
 	result += fmt.Sprintf("仓库名称: %s\n", repo)
 	result += fmt.Sprintf("仓库URL: %s\n", url)
 
