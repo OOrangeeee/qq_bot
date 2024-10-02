@@ -70,6 +70,7 @@ func GetInfoOfRepo(url string) (string, error) {
 	// 拼接结果字符串
 	result := "+++++\n"
 	result += fmt.Sprintf("仓库名称: %s\n", repo)
+	result += fmt.Sprintf("仓库URL: %s\n", url)
 
 	// 如果存在主分支，显示其信息
 	if prioritizedBranch != "" {

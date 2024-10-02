@@ -124,19 +124,19 @@ func MessageParse(c echo.Context) error {
 // matchGithubGet 检查字符串是否符合 "/gb-get *****" 模式，并返回匹配后的非空格字符串切片和匹配结果
 func matchGithubGet(input string) ([]string, bool) {
 	// 编译正则表达式，用于捕获非空格字符串
-	regex, err := regexp.Compile(`^/gb-get\s+(\S+)$`)
+	regex, err := regexp.Compile(`^/gb-get\s+(.+)$`)
 	if err != nil {
 		fmt.Println("Invalid regex:", err)
 		return nil, false
 	}
-
 	// 检查字符串是否匹配正则表达式
 	if regex.MatchString(input) {
 		// 使用 FindStringSubmatch 获取所有匹配的部分，其中第一个元素是整个匹配，后续元素是捕获的子表达式
 		matches := regex.FindStringSubmatch(input)
 		if len(matches) > 1 {
-			// 返回捕获的子表达式（非空格字符串）
-			return matches[1:], true
+			// 使用 strings.Fields 分割字符串
+			fields := strings.Fields(matches[1])
+			return fields, true
 		}
 	}
 	return nil, false
@@ -166,20 +166,20 @@ func matchGithubSet(input string) ([]string, bool) {
 
 // matchGithubDel 检查字符串是否符合 "/gb-del *****" 模式，并返回匹配后的非空格字符串切片和匹配结果
 func matchGithubDel(input string) ([]string, bool) {
-	// 编译正则表达式，用于捕获非空格字符串
-	regex, err := regexp.Compile(`^/gb-del\s+(\S+)$`)
+	// 编译正则表达式，用于捕获任意字符（包括空格）的字符串
+	regex, err := regexp.Compile(`^/gb-del\s+(.+)`)
 	if err != nil {
 		fmt.Println("Invalid regex:", err)
 		return nil, false
 	}
-
 	// 检查字符串是否匹配正则表达式
 	if regex.MatchString(input) {
-		// 使用 FindStringSubmatch 获取所有匹配的部分，其中第一个元素是整个匹配，后续元素是捕获的子表达式
+		// 使用 FindStringSubmatch 获取所有匹配的部分
 		matches := regex.FindStringSubmatch(input)
 		if len(matches) > 1 {
-			// 返回捕获的子表达式（非空格字符串）
-			return matches[1:], true
+			// 使用 strings.Fields 分割字符串
+			fields := strings.Fields(matches[1])
+			return fields, true
 		}
 	}
 	return nil, false
