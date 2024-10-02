@@ -43,11 +43,11 @@ type SecretsResponse struct {
 var Config configCenter
 
 func (c *configCenter) InitConfig(e *echo.Echo, args ...string) {
-	err := c.GetAppConfig()
 	c.Flags = make(map[string]string)
 	c.Flags["env"] = args[0]
 	c.Flags["clientID"] = args[1]
 	c.Flags["clientSecret"] = args[2]
+	err := c.GetAppConfig()
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
