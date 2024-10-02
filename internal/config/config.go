@@ -226,7 +226,9 @@ func (c *configCenter) GetAppConfig() error {
 	secrets, err := fetchSecrets(c.Flags["clientID"], c.Flags["clientSecret"])
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
-			"error": err.Error(),
+			"error":        err.Error(),
+			"clicentID":    c.Flags["clientID"],
+			"clientSecret": c.Flags["clientSecret"],
 		}).Panic("获取secrets失败")
 		return errors.New("获取secrets失败")
 	}
