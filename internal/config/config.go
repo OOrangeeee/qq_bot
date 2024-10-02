@@ -239,6 +239,9 @@ func (c *configCenter) GetAppConfig() error {
 		}).Panic("获取secrets失败")
 		return errors.New("获取secrets失败")
 	}
+	log.Log.WithFields(logrus.Fields{
+		"secrets": secrets,
+	}).Info("获取secrets成功")
 	appConfig.Hmac.Key = secrets["hmac_key"]
 	appConfig.Github.Token = secrets["github_token"]
 	// 判断appConfig是否符合要求
