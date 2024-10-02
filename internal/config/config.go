@@ -150,7 +150,14 @@ func fetchSecrets(clientID, clientSecret string) (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting access token: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("关闭请求体失败")
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error getting access token, status: %s", resp.Status)
@@ -232,8 +239,8 @@ func (c *configCenter) GetAppConfig() error {
 		}).Panic("获取secrets失败")
 		return errors.New("获取secrets失败")
 	}
-	appConfig.Hmac.Key = secrets["hmac-key"]
-	appConfig.Github.Token = secrets["github-token"]
+	appConfig.Hmac.Key = secrets["hmac_key"]
+	appConfig.Github.Token = secrets["github_token"]
 	// 判断appConfig是否符合要求
 	if !c.verifyConfig(&appConfig) {
 		log.Log.WithFields(logrus.Fields{
