@@ -3,11 +3,13 @@ package service
 import (
 	"GitHubBot/internal/config"
 	"GitHubBot/internal/database"
+	"GitHubBot/internal/log"
 	"GitHubBot/internal/model"
 	githubService "GitHubBot/internal/service/github"
 	llmService "GitHubBot/internal/service/llm"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -148,6 +150,9 @@ func MessageParse(c echo.Context) error {
 		})
 		ans, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
 		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("发送消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！发送消息失败呜呜呜",
 			})
