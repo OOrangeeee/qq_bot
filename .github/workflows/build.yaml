@@ -24,10 +24,9 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          SHA=$(git rev-parse --short HEAD)
-          docker build -t qq_bot:$SHA .
-          docker tag qq_bot:$SHA registry.cn-shanghai.aliyuncs.com/oorangeeee/qq_bot:$SHA
-          docker push registry.cn-shanghai.aliyuncs.com/oorangeeee/qq_bot:$SHA
+          docker build -t qq_bot:latest .
+          docker tag qq_bot:$SHA registry.cn-shanghai.aliyuncs.com/oorangeeee/qq_bot:latest
+          docker push registry.cn-shanghai.aliyuncs.com/oorangeeee/qq_bot:latest
 
       - name: Log out from Aliyun Docker Registry
         if: always()
