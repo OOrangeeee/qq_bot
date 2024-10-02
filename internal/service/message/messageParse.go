@@ -30,7 +30,12 @@ func MessageParse(c echo.Context) error {
 	fromId := strconv.Itoa(int(fromIdStr))
 	if repos, ok := matchGithubGet(message); ok {
 		var ans string
-		for _, repoName := range repos {
+		for num, repoName := range repos {
+			if num >= 3 {
+				ans += "+++++\n由于时间限制最多只能查询三个仓库信息\n+++++\n"
+				ans += "-\n"
+				break
+			}
 			ifExist, err := database.Redis.IfRepoExist(repoName)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
