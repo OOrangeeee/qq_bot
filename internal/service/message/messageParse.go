@@ -25,8 +25,13 @@ func MessageParse(c echo.Context) error {
 		for _, repoName := range repos {
 			repo, err := database.Redis.GetRepo(repoName)
 			if err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]interface{}{
-					"message": "获取仓库信息失败",
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！从数据库获取仓库信息失败呜呜呜",
+				})
+			}
+			if repo == nil {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！数据库中没有这个仓库信息呜呜呜",
 				})
 			}
 			ansTmp, err := service.GetInfoOfRepo(repo.Url)
@@ -36,7 +41,7 @@ func MessageParse(c echo.Context) error {
 				continue
 			}
 			ans += ansTmp
-			ans += "\n"
+			ans += "-\n"
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"reply": ans,
@@ -49,8 +54,8 @@ func MessageParse(c echo.Context) error {
 			Url:      repoUrl,
 		})
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]interface{}{
-				"message": "添加仓库信息失败",
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！数据库中已经有这个仓库信息了呜呜呜",
 			})
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
@@ -72,6 +77,10 @@ func MessageParse(c echo.Context) error {
 					"message": "获取仓库信息失败",
 				})
 			}
+			if repo == nil {
+				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", name)
+				continue
+			}
 			ansTmp, err := service.GetInfoOfRepo(repo.Url)
 			if err != nil {
 				ans += fmt.Sprintf("+++++\n获取仓库 %s 信息失败\n+++++\n", name)
@@ -84,23 +93,23 @@ func MessageParse(c echo.Context) error {
 		})
 	} else if delItem, ok := matchGithubDel(message); ok {
 		// 删除仓库信息
+		var ans string
 		for _, repoName := range delItem {
 			repo, err := database.Redis.GetRepo(repoName)
 			if err != nil {
-				continue
+				ans += fmt.Sprintf("+++++\n从数据库获取仓库 %s 信息失败\n+++++\n", repoName)
 			}
 			if repo == nil {
-				continue
+				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
 			}
 			err = database.Redis.DeleteRepo(repo)
 			if err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]interface{}{
-					"message": "删除仓库信息失败",
-				})
+				ans += fmt.Sprintf("+++++\n删除仓库 %s 信息失败\n+++++\n", repoName)
 			}
+			ans += "-\n"
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": "橙子报告！删除仓库信息成功！！！",
+			"reply": ans,
 		})
 	} else if strings.Contains(message, "宁静") || strings.Contains(message, "nxj") || strings.Contains(message, "宁小静") || strings.Contains(message, "柠檬头") || strings.Contains(message, "柠檬") || strings.Contains(message, "lemon") || strings.Contains(message, "Lemon") || strings.Contains(message, "nmt") {
 		return c.JSON(http.StatusOK, map[string]interface{}{
