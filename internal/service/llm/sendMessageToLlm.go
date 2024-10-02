@@ -42,8 +42,9 @@ type MessageContent struct {
 func SendMessage(apiKey string, messages []Message) (string, error) {
 	// 构建请求体
 	requestData := RequestBody{
-		Model:    "glm-4-flash",
-		Messages: messages,
+		Model:     "glm-4-flash",
+		Messages:  messages,
+		MaxTokens: 1024,
 	}
 
 	// 序列化请求数据
