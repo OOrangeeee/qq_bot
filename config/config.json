@@ -1,0 +1,14 @@
+{
+  "data-base": {
+    "dev-dsn": "postgres://postgres:bsbflsgxh..@localhost:5432/qq_bot",
+    "pro-dsn": "postgres://postgres:bsbflsgxh..@db:5432/qq_bot"
+  },
+  "redis": {
+    "dev-dsn": "redis://localhost:6379",
+    "pro-dsn": "redis://redis:6379",
+    "num-of-worker": 128,
+    "task-channel-size": 64,
+    "bloom-filter-capacity": 10000,
+    "bloom-filter-false-positive-rate": 0.001
+  }
+}

@@ -1,11 +1,14 @@
 services:
   app:
-    image: qqbot:v0.0.2
+    image: youimages
     ports:
       - "2077:2077"
     depends_on:
       - db
       - redis
+    environment:
+      HCP_CLIENT_ID: your-client-id
+      HCP_CLIENT_SECRET: your-client-secret
   db:
     image: postgres:15.6
     environment:

@@ -9,14 +9,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 )
 
 type configCenter struct {
@@ -24,12 +25,29 @@ type configCenter struct {
 	Flags     map[string]string
 }
 
+type AuthResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+type SecretItem struct {
+	Name    string `json:"name"`
+	Version struct {
+		Value string `json:"value"`
+	} `json:"version"`
+}
+
+type SecretsResponse struct {
+	Secrets []SecretItem `json:"secrets"`
+}
+
 var Config configCenter
 
-func (c *configCenter) InitConfig(env string, e *echo.Echo) {
+func (c *configCenter) InitConfig(e *echo.Echo, args ...string) {
 	err := c.GetAppConfig()
 	c.Flags = make(map[string]string)
-	c.Flags["env"] = env
+	c.Flags["env"] = args[0]
+	c.Flags["clientID"] = args[1]
+	c.Flags["clientSecret"] = args[2]
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -50,40 +68,9 @@ func (c *configCenter) initMiddleware(e *echo.Echo) {
 		MaxAge:       3600,
 	}))
 
-	/*	// RequestLoggerMiddleware
-		e.Use(RequestLoggerMiddleware)*/
-
 	// HMACMiddleware
 	e.Use(HMACMiddleware)
 
-}
-
-func RequestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		// 打印请求方法和请求路径
-		log.Log.Info("Method: %s, Path: %s", c.Request().Method, c.Request().URL.Path)
-
-		// 打印所有请求头
-		for header, values := range c.Request().Header {
-			for _, value := range values {
-				log.Log.Info("Header: %s, Value: %s", header, value)
-			}
-		}
-
-		// 读取并打印请求体
-		bodyBytes, err := ioutil.ReadAll(c.Request().Body)
-		if err != nil {
-			log.Log.Info("Error reading body: %s", err)
-			return err
-		}
-		// 重新设置请求体，以便后续处理逻辑可以使用
-		c.Request().Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
-
-		log.Log.Info("Body: %s", string(bodyBytes))
-
-		// 继续处理请求
-		return next(c)
-	}
 }
 
 func HMACMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
@@ -149,6 +136,69 @@ func checkAllFieldsSet(v reflect.Value) bool {
 	return true
 }
 
+func fetchSecrets(clientID, clientSecret string) (map[string]string, error) {
+	secrets := make(map[string]string)
+
+	// Step 1: Get Access Token
+	tokenURL := "https://auth.idp.hashicorp.com/oauth2/token"
+	data := "client_id=" + clientID + "&client_secret=" + clientSecret + "&grant_type=client_credentials&audience=https://api.hashicorp.cloud"
+	req, _ := http.NewRequest("POST", tokenURL, strings.NewReader(data))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error getting access token: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error getting access token, status: %s", resp.Status)
+	}
+
+	var authResp AuthResponse
+	err = json.NewDecoder(resp.Body).Decode(&authResp)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding access token response: %v", err)
+	}
+
+	// Step 2: Use Access Token to fetch secrets
+	secretsURL := "https://api.cloud.hashicorp.com/secrets/2023-06-13/organizations/8196eed4-4f13-4429-8f0e-b12f613cd493/projects/46f34615-819d-48eb-bf37-20ce5f17aad6/apps/qq-bot/open"
+	req, _ = http.NewRequest("GET", secretsURL, nil)
+	req.Header.Add("Authorization", "Bearer "+authResp.AccessToken)
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching secrets: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("关闭请求体失败")
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching secrets, status: %s, body: %s", resp.Status, string(body))
+	}
+
+	var secretsResp SecretsResponse
+	err = json.NewDecoder(resp.Body).Decode(&secretsResp)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding secrets response: %v", err)
+	}
+
+	// Step 3: Store the secrets in a map
+	for _, item := range secretsResp.Secrets {
+		secrets[item.Name] = item.Version.Value
+	}
+
+	return secrets, nil
+}
+
 // GetAppConfig 获取配置
 func (c *configCenter) GetAppConfig() error {
 	file, err := os.Open("./config/config.json")
@@ -158,7 +208,7 @@ func (c *configCenter) GetAppConfig() error {
 		}).Panic("打开配置文件失败")
 		return errors.New("打开配置文件失败")
 	}
-	bytes, err := io.ReadAll(file)
+	bytesS, err := io.ReadAll(file)
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -166,13 +216,22 @@ func (c *configCenter) GetAppConfig() error {
 		return errors.New("读取配置文件失败")
 	}
 	var appConfig model.AppConfig
-	err = json.Unmarshal(bytes, &appConfig)
+	err = json.Unmarshal(bytesS, &appConfig)
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Panic("解析配置失败")
 		return errors.New("解析配置失败")
 	}
+	secrets, err := fetchSecrets(c.Flags["clientID"], c.Flags["clientSecret"])
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Panic("获取secrets失败")
+		return errors.New("获取secrets失败")
+	}
+	appConfig.Hmac.Key = secrets["hmac-key"]
+	appConfig.Github.Token = secrets["github-token"]
 	// 判断appConfig是否符合要求
 	if !c.verifyConfig(&appConfig) {
 		log.Log.WithFields(logrus.Fields{
