@@ -8,6 +8,7 @@ type Event struct {
 	SubType     string `json:"sub_type"`
 	MessageId   uint   `json:"message_id"`
 	UserId      uint   `json:"user_id"`
+	GroupId     uint   `json:"group_id"`
 	Message     string `json:"message"`
 	RawMessage  string `json:"raw_message"`
 	Font        int    `json:"font"`

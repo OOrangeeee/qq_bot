@@ -29,10 +29,15 @@ func MessageParse(c echo.Context) error {
 	}
 	message := event.Message
 	message_type := event.MessageType
-	fromIdStr := event.UserId
-	fromId := strconv.Itoa(int(fromIdStr))
+	fromIdInt := event.UserId
+	groupIdInt := event.GroupId
+	fromId := strconv.Itoa(int(fromIdInt))
 	if repos, ok := matchGithubGet(message); ok {
 		var ans string
+		if message_type == "group" {
+			ans += "[CQ:reply,id=" + fromId + "]\n"
+		}
+		// 编写ans
 		for num, repoName := range repos {
 			if num >= 3 {
 				ans += "+++++\n由于时间限制最多只能查询三个仓库信息\n+++++\n"
@@ -69,9 +74,27 @@ func MessageParse(c echo.Context) error {
 			ans += ansTmp
 			ans += "-\n"
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": ans,
-		})
+		if message_type == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("回复消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！回复消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if setItem, ok := matchGithubSet(message); ok {
 		repoName := setItem[0]
 		repoUrl := setItem[1]
@@ -85,9 +108,27 @@ func MessageParse(c echo.Context) error {
 				"reply": "橙子报告！数据库中已经有这个仓库信息了呜呜呜",
 			})
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": fmt.Sprintf("橙子报告！添加仓库 %s 成功！！！", repoName),
-		})
+		if message_type == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:reply,id=%s]\n"+"橙子报告！添加仓库 %s 成功！！！", fromId, repoName))
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), fmt.Sprintf("橙子报告！添加仓库 %s 成功！！！", repoName))
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("回复消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！回复消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if strings.EqualFold(message, "/gb-get-names") {
 		// 获取所有仓库名
 		allNames, err := database.Redis.GetAllReposNames()
@@ -97,15 +138,39 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		var ans string
+		if message_type == "group" {
+			ans += "[CQ:reply,id=" + fromId + "]\n"
+		}
 		for _, name := range allNames {
 			ans += fmt.Sprintf("+++++\n%s\n", name)
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": ans,
-		})
+		if message_type == "group" {
+			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("回复消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！回复消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if delItem, ok := matchGithubDel(message); ok {
 		// 删除仓库信息
 		var ans string
+		if message_type == "group" {
+			ans += "[CQ:reply,id=" + fromId + "]\n"
+		}
 		for _, repoName := range delItem {
 			ifExist, err := database.Redis.IfRepoExist(repoName)
 			if err != nil {
@@ -131,9 +196,27 @@ func MessageParse(c echo.Context) error {
 			ans += fmt.Sprintf("+++++\n删除仓库 %s 信息成功\n+++++\n", repoName)
 			ans += "-\n"
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": ans,
-		})
+		if message_type == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("回复消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！回复消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if message_type == "private" {
 		var messageSend []llmService.Message
 		messageSend = make([]llmService.Message, 0)
@@ -169,9 +252,16 @@ func MessageParse(c echo.Context) error {
 				"reply": "橙子报告！发送消息失败呜呜呜",
 			})
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"reply": ans,
-		})
+		err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("回复消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！回复消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else {
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	}

@@ -109,7 +109,7 @@ func getAllCommits(owner, repo string) ([]CommitInfo, error) {
 	perPage := 100
 
 	for {
-		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=%d&page=%d", owner, repo, perPage, page)
+		url := fmt.Sprintf(config.Config.AppConfig.Github.ApiUrl+"/repos/%s/%s/commits?per_page=%d&page=%d", owner, repo, perPage, page)
 		resp, err := makeGitHubRequest(url)
 		if err != nil {
 			return nil, err
@@ -166,7 +166,7 @@ func getBranches(owner, repo string) ([]Branch, error) {
 	perPage := 100
 
 	for {
-		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/branches?per_page=%d&page=%d", owner, repo, perPage, page)
+		url := fmt.Sprintf(config.Config.AppConfig.Github.ApiUrl+"/repos/%s/%s/branches?per_page=%d&page=%d", owner, repo, perPage, page)
 		resp, err := makeGitHubRequest(url)
 		if err != nil {
 			return nil, err

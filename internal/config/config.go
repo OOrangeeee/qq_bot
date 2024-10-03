@@ -248,6 +248,9 @@ func (c *configCenter) GetAppConfig() error {
 	appConfig.Llm.Secret = secrets["llm_secret"]
 	appConfig.Llm.VipQQ = secrets["llm_vipqq"]
 	appConfig.Llm.VipMessage = secrets["llm_vip_message"]
+	appConfig.QQ.BotUrl = secrets["qq_bot_url"]
+	appConfig.QQ.BotToken = secrets["qq_bot_token"]
+	appConfig.Github.ApiUrl = secrets["github_api_url"]
 	// 判断appConfig是否符合要求
 	if !c.verifyConfig(&appConfig) {
 		log.Log.WithFields(logrus.Fields{
