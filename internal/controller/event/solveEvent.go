@@ -10,16 +10,16 @@ import (
 func SolveEvent(c echo.Context) error {
 	eventType, err := eventService.GetEvent(c)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"error": err.Error(),
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"reply": "解析事件出错",
 		})
 	}
 	switch eventType {
 	case "message":
 		return service.MessageParse(c)
 	default:
-		return c.JSON(http.StatusNoContent, map[string]interface{}{
-			"error": "未知事件类型",
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"reply": "未知事件类型",
 		})
 	}
 }

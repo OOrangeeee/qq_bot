@@ -7,6 +7,7 @@ type AppConfig struct {
 	Github    githubConfig   `json:"github"`
 	Character character      `json:"character"`
 	Llm       llm            `json:"llm"`
+	QQ        qqConfig       `json:"qq"`
 }
 
 type hmac struct {
@@ -26,7 +27,8 @@ type redisConfig struct {
 }
 
 type githubConfig struct {
-	Token string `json:"token"`
+	Token  string `json:"token"`
+	ApiUrl string `json:"api-url"`
 }
 
 type character struct {
@@ -37,4 +39,9 @@ type llm struct {
 	Secret     string `json:"secret"`
 	VipQQ      string `json:"vipqq"`
 	VipMessage string `json:"vip-message"`
+}
+
+type qqConfig struct {
+	BotUrl   string `json:"bot-url"`
+	BotToken string `json:"bot-token"`
 }
