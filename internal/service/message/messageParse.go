@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func MessageParse(c echo.Context) error {
@@ -217,6 +218,32 @@ func MessageParse(c echo.Context) error {
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else {
+		// 存储消息
+		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("qq转换失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！qq转换失败呜呜呜",
+			})
+		}
+		newMessage := &database.Message{
+			Token:  util.GenerateUUID(),
+			FromId: int(fromIdInt),
+			ToId:   qq,
+			Text:   message,
+			Time:   time.Now(),
+		}
+		err = database.Redis.AddNewMessage(newMessage)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("存储消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！存储消息失败呜呜呜",
+			})
+		}
 		var ans string
 		if message_type == "group" {
 			if strings.Contains(message, "[CQ:at,qq="+config.Config.AppConfig.QQ.BotQQ+"]") {
@@ -250,6 +277,24 @@ func MessageParse(c echo.Context) error {
 			Role:    "user",
 			Content: message,
 		})
+		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
+		sendMessages, err := database.Redis.GetMessages(qq, int(fromIdInt))
+		if getMessages != nil {
+			for _, messageTmp := range *getMessages {
+				messageSend = append(messageSend, llmService.Message{
+					Role:    "user",
+					Content: messageTmp.Text,
+				})
+			}
+		}
+		if sendMessages != nil {
+			for _, messageTmp := range *sendMessages {
+				messageSend = append(messageSend, llmService.Message{
+					Role:    "assistant",
+					Content: messageTmp.Text,
+				})
+			}
+		}
 		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
@@ -257,6 +302,22 @@ func MessageParse(c echo.Context) error {
 			}).Error("发送消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！发送消息失败呜呜呜",
+			})
+		}
+		newMessage = &database.Message{
+			Token:  util.GenerateUUID(),
+			FromId: qq,
+			ToId:   int(fromIdInt),
+			Text:   message,
+			Time:   time.Now(),
+		}
+		err = database.Redis.AddNewMessage(newMessage)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("存储消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！存储消息失败呜呜呜",
 			})
 		}
 		ans += ansTmp

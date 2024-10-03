@@ -66,4 +66,10 @@ func InitDataBase() {
 			"error": err.Error(),
 		}).Panic("创建仓库表失败")
 	}
+	err = DB.DataBase.AutoMigrate(&Message{})
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Panic("创建消息表失败")
+	}
 }
