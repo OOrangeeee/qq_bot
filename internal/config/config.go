@@ -252,6 +252,7 @@ func (c *configCenter) GetAppConfig() error {
 	appConfig.QQ.BotToken = secrets["qq_bot_token"]
 	appConfig.Github.ApiUrl = secrets["github_api_url"]
 	appConfig.QQ.BotQQ = secrets["qq_bot_qq"]
+	appConfig.Llm.Version = secrets["llm_version"]
 	// 判断appConfig是否符合要求
 	if !c.verifyConfig(&appConfig) {
 		log.Log.WithFields(logrus.Fields{

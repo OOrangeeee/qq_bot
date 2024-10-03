@@ -39,6 +39,7 @@ type llm struct {
 	Secret     string `json:"secret"`
 	VipQQ      string `json:"vipqq"`
 	VipMessage string `json:"vip-message"`
+	Version    string `json:"version"`
 }
 
 type qqConfig struct {

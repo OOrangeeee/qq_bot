@@ -1,6 +1,7 @@
 package service
 
 import (
+	"GitHubBot/internal/config"
 	"GitHubBot/internal/log"
 	"bytes"
 	"encoding/json"
@@ -42,7 +43,7 @@ type MessageContent struct {
 func SendMessage(apiKey string, messages []Message) (string, error) {
 	// 构建请求体
 	requestData := RequestBody{
-		Model:     "glm-4-flash",
+		Model:     config.Config.AppConfig.Llm.Version,
 		Messages:  messages,
 		MaxTokens: 4095,
 	}
