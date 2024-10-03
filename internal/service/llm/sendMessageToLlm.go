@@ -44,7 +44,7 @@ func SendMessage(apiKey string, messages []Message) (string, error) {
 	requestData := RequestBody{
 		Model:     "glm-4-flash",
 		Messages:  messages,
-		MaxTokens: 1024,
+		MaxTokens: 4095,
 	}
 
 	// 序列化请求数据

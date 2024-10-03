@@ -41,7 +41,10 @@ func SendMessageToQQ(messageType string, userId int, groupId int, message string
 		}).Error("请求数据序列化失败")
 		return err
 	}
-	req, err := http.NewRequest("POST", config.Config.AppConfig.QQ.BotUrl+"/send_private_msg", bytes.NewBuffer(jsonData))
+	log.Log.WithFields(logrus.Fields{
+		"jsonData": string(jsonData),
+	}).Info("请求数据")
+	req, err := http.NewRequest("POST", config.Config.AppConfig.QQ.BotUrl+"/send_msg", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -67,6 +70,9 @@ func SendMessageToQQ(messageType string, userId int, groupId int, message string
 		}
 	}(resp.Body)
 	body, err := io.ReadAll(resp.Body)
+	log.Log.WithFields(logrus.Fields{
+		"body": string(body),
+	}).Info("响应体")
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
