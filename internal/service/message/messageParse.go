@@ -265,7 +265,11 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		ans += ansTmp
-		err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		if message_type == "group" {
+			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
+		} else {
+			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		}
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
 				"error": err.Error(),
