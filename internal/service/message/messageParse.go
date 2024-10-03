@@ -7,6 +7,7 @@ import (
 	"GitHubBot/internal/model"
 	githubService "GitHubBot/internal/service/github"
 	llmService "GitHubBot/internal/service/llm"
+	"GitHubBot/internal/util"
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -75,6 +76,7 @@ func MessageParse(c echo.Context) error {
 		repoName := setItem[0]
 		repoUrl := setItem[1]
 		err := database.Redis.AddNewRepo(&database.GbRepos{
+			Token:    util.GenerateUUID(),
 			RepoName: repoName,
 			Url:      repoUrl,
 		})
