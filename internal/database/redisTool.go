@@ -6,9 +6,11 @@ import (
 	"GitHubBot/internal/model"
 	"context"
 	"encoding/json"
-	"github.com/bits-and-blooms/bloom/v3"
+	"errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
+	"sync"
 	"time"
 )
 
@@ -16,14 +18,14 @@ import (
 // 有2种类型的任务：更新，删除，新建
 type RedisTask struct {
 	taskType string
-	val      *model.GbRepos
+	val      Record
 }
 
 type RedisTool struct {
 	redisClient *redis.Client
 	taskQueue   chan RedisTask
 	workerSize  int
-	bloomFilter *bloom.BloomFilter
+	bloomMap    sync.Map
 }
 
 var Redis RedisTool
@@ -67,7 +69,6 @@ func InitRedis() {
 	Redis.taskQueue = make(chan RedisTask, config.Config.AppConfig.Redis.TaskChannelSize)
 	Redis.StartWorkers()
 	// 初始化布隆过滤器
-	Redis.bloomFilter = bloom.NewWithEstimates(config.Config.AppConfig.Redis.BloomFilterCapacity, config.Config.AppConfig.Redis.BloomFilterFalsePositiveRate)
 	Redis.cachePreheating()
 }
 
@@ -79,48 +80,27 @@ func (rt *RedisTool) StartWorkers() {
 
 func (rt *RedisTool) worker() {
 	for task := range rt.taskQueue {
-		repos, err := GetRepoByName(task.val.RepoName)
-		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("查找仓库失败")
-		}
-		var repoExist bool
-		if len(repos) == 0 {
-			repoExist = false
-		} else {
-			repoExist = true
-		}
 		switch task.taskType {
 		case "update":
-			if !repoExist {
-				continue
-			}
-			err = UpdateRepo(task.val)
+			err := task.val.Delete()
 			if err != nil {
 				log.Log.WithFields(logrus.Fields{
 					"error": err.Error(),
-				}).Error("更新仓库失败")
+				}).Error("数据库更新失败")
 			}
 		case "delete":
-			if !repoExist {
-				continue
-			}
-			err = DeleteUnscopedRepo(task.val)
+			err := task.val.Delete()
 			if err != nil {
 				log.Log.WithFields(logrus.Fields{
 					"error": err.Error(),
-				}).Error("删除仓库失败")
+				}).Error("删除失败")
 			}
 		case "add":
-			if repoExist {
-				continue
-			}
-			err = AddNewRepo(task.val)
+			err := task.val.Add()
 			if err != nil {
 				log.Log.WithFields(logrus.Fields{
 					"error": err.Error(),
-				}).Error("添加仓库失败")
+				}).Error("添加失败")
 			}
 		default:
 			log.Log.WithFields(logrus.Fields{
@@ -141,7 +121,7 @@ func (rt *RedisTool) cacheRepo(repo *model.GbRepos) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := rt.redisClient.Set(ctx, repo.RepoName, repoJson, 24*time.Hour)
+	result := rt.redisClient.Set(ctx, repo.Token, repoJson, 24*time.Hour)
 	if result.Err() != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": result.Err(),
@@ -163,7 +143,7 @@ func (rt *RedisTool) AddNewRepo(repo *model.GbRepos) error {
 		val:      repo,
 	}
 	// 添加到布隆过滤器
-	rt.bloomFilter.AddString(repo.RepoName)
+	rt.bloomMap.Store("repo"+repo.RepoName, true)
 	return nil
 }
 
@@ -171,7 +151,7 @@ func (rt *RedisTool) DeleteRepo(repo *model.GbRepos) error {
 	// 删除缓存
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := rt.redisClient.Del(ctx, repo.RepoName)
+	result := rt.redisClient.Del(ctx, repo.Token)
 	if result.Err() != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": result.Err(),
@@ -183,6 +163,8 @@ func (rt *RedisTool) DeleteRepo(repo *model.GbRepos) error {
 		taskType: "delete",
 		val:      repo,
 	}
+	// 从布隆过滤器删除
+	rt.bloomMap.Delete("repo" + repo.RepoName)
 	return nil
 }
 
@@ -197,46 +179,26 @@ func (rt *RedisTool) UpdateRepo(repo *model.GbRepos) error {
 		taskType: "update",
 		val:      repo,
 	}
-	rt.bloomFilter.AddString(repo.RepoName)
 	return nil
 }
 
 func (rt *RedisTool) IfRepoExist(name string) (bool, error) {
 	// 布隆过滤器判断
-	if !rt.bloomFilter.TestString(name) {
+	if value, ok := rt.bloomMap.Load("repo" + name); !ok || !value.(bool) {
 		return false, nil
 	}
-	// 从缓存中获取判断
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	result := rt.redisClient.Exists(ctx, name)
-	if result.Err() != nil {
+	// 查找token
+	tmp := model.GbRepos{}
+	_, err := tmp.GetTokenByStr("repo_name", name)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Log.WithFields(logrus.Fields{
-			"error": result.Err(),
-		}).Error("判断仓库是否存在缓存失败")
-		return false, result.Err()
+			"error": err.Error(),
+		}).Error("从数据库获取token失败")
+		return false, err
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
 	}
-	if result.Val() <= 0 {
-		// 从数据库判断
-		repos, err := GetRepoByName(name)
-		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("从数据库获取仓库失败")
-			return false, err
-		}
-		if len(repos) <= 0 {
-			return false, nil
-		} else {
-			// 存入缓存
-			user := repos[0]
-			err := rt.cacheRepo(user)
-			if err != nil {
-				return true, err
-			}
-			return true, nil
-		}
-	}
+	// 可以根据name从数据库获取token则说明存在
 	return true, nil
 }
 
@@ -246,43 +208,84 @@ func (rt *RedisTool) GetRepo(name string) (*model.GbRepos, error) {
 		return nil, err
 	}
 	if !exist {
-		return nil, nil
+		return nil, gorm.ErrRecordNotFound
 	}
 	// 从缓存获取
 	ctx3, cancel3 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel3()
 	result3 := rt.redisClient.Get(ctx3, name)
-	if result3.Err() != nil {
+	if result3.Err() != nil && !errors.Is(result3.Err(), redis.Nil) {
 		log.Log.WithFields(logrus.Fields{
 			"error": result3.Err(),
 		}).Error("获取仓库失败")
 		return nil, result3.Err()
+	} else if errors.Is(result3.Err(), redis.Nil) {
+		// 从数据库获取
+		repo := model.GbRepos{}
+		err = repo.GetByStr("repo_name", name)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("从数据库获取仓库失败")
+			return nil, err
+		}
+		// 缓存
+		err = rt.cacheRepo(&repo)
+		if err != nil {
+			return nil, err
+		}
+		return &repo, nil
+	} else {
+		repo := model.GbRepos{}
+		err = json.Unmarshal([]byte(result3.Val()), &repo)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("反序列化仓库失败")
+			return nil, err
+		}
+		return &repo, nil
 	}
-	repo := model.GbRepos{}
-	err = json.Unmarshal([]byte(result3.Val()), &repo)
-	if err != nil {
-		log.Log.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("反序列化仓库失败")
-		return nil, err
-	}
-	return &repo, nil
 }
 
 func (rt *RedisTool) GetAllReposNames() ([]string, error) {
 	// 从数据库获取
-	return GetAllReposName()
+	temp := model.GbRepos{}
+	records, err := temp.GetAll()
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("从数据库获取所有仓库失败")
+		return nil, err
+	}
+	// 将Record接口转化为GbRepos
+	var repos []model.GbRepos
+	for _, record := range *records {
+		repo, ok := record.(*model.GbRepos)
+		if !ok {
+			log.Log.WithFields(logrus.Fields{
+				"error": "类型转化失败",
+			}).Error("类型转化失败")
+			return nil, errors.New("类型转化失败")
+		}
+		repos = append(repos, *repo)
+	}
+	var names []string
+	for _, repo := range repos {
+		names = append(names, repo.RepoName)
+	}
+	return names, nil
 }
 
 func (rt *RedisTool) cachePreheating() {
-	names, err := GetAllReposName()
+	names, err := rt.GetAllReposNames()
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Panic("缓存预热失败")
 	}
-	for _, openId := range names {
-		rt.bloomFilter.AddString(openId)
+	for _, name := range names {
+		rt.bloomMap.Store("repo"+name, true)
 	}
 }
 
