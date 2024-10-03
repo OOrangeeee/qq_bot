@@ -7,8 +7,6 @@
     "dev-dsn": "redis://localhost:6379",
     "pro-dsn": "redis://redis:6379",
     "num-of-worker": 128,
-    "task-channel-size": 64,
-    "bloom-filter-capacity": 10000,
-    "bloom-filter-false-positive-rate": 0.001
+    "task-channel-size": 64
   }
 }

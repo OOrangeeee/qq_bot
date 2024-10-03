@@ -3,7 +3,6 @@ package database
 import (
 	"GitHubBot/internal/config"
 	"GitHubBot/internal/log"
-	"GitHubBot/internal/model"
 	"context"
 	"encoding/json"
 	"errors"
@@ -111,7 +110,7 @@ func (rt *RedisTool) worker() {
 	}
 }
 
-func (rt *RedisTool) cacheRepo(repo *model.GbRepos) error {
+func (rt *RedisTool) cacheRepo(repo *GbRepos) error {
 	repoJson, err := json.Marshal(*repo)
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
@@ -131,7 +130,7 @@ func (rt *RedisTool) cacheRepo(repo *model.GbRepos) error {
 	return nil
 }
 
-func (rt *RedisTool) AddNewRepo(repo *model.GbRepos) error {
+func (rt *RedisTool) AddNewRepo(repo *GbRepos) error {
 	// 存入缓存
 	err := rt.cacheRepo(repo)
 	if err != nil {
@@ -147,7 +146,7 @@ func (rt *RedisTool) AddNewRepo(repo *model.GbRepos) error {
 	return nil
 }
 
-func (rt *RedisTool) DeleteRepo(repo *model.GbRepos) error {
+func (rt *RedisTool) DeleteRepo(repo *GbRepos) error {
 	// 删除缓存
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -168,7 +167,7 @@ func (rt *RedisTool) DeleteRepo(repo *model.GbRepos) error {
 	return nil
 }
 
-func (rt *RedisTool) UpdateRepo(repo *model.GbRepos) error {
+func (rt *RedisTool) UpdateRepo(repo *GbRepos) error {
 	// 更新缓存
 	err := rt.cacheRepo(repo)
 	if err != nil {
@@ -188,7 +187,7 @@ func (rt *RedisTool) IfRepoExist(name string) (bool, error) {
 		return false, nil
 	}
 	// 查找token
-	tmp := model.GbRepos{}
+	tmp := GbRepos{}
 	_, err := tmp.GetTokenByStr("repo_name", name)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Log.WithFields(logrus.Fields{
@@ -202,7 +201,7 @@ func (rt *RedisTool) IfRepoExist(name string) (bool, error) {
 	return true, nil
 }
 
-func (rt *RedisTool) GetRepo(name string) (*model.GbRepos, error) {
+func (rt *RedisTool) GetRepo(name string) (*GbRepos, error) {
 	exist, err := rt.IfRepoExist(name)
 	if err != nil {
 		return nil, err
@@ -221,7 +220,7 @@ func (rt *RedisTool) GetRepo(name string) (*model.GbRepos, error) {
 		return nil, result3.Err()
 	} else if errors.Is(result3.Err(), redis.Nil) {
 		// 从数据库获取
-		repo := model.GbRepos{}
+		repo := GbRepos{}
 		err = repo.GetByStr("repo_name", name)
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
@@ -236,7 +235,7 @@ func (rt *RedisTool) GetRepo(name string) (*model.GbRepos, error) {
 		}
 		return &repo, nil
 	} else {
-		repo := model.GbRepos{}
+		repo := GbRepos{}
 		err = json.Unmarshal([]byte(result3.Val()), &repo)
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
@@ -250,7 +249,7 @@ func (rt *RedisTool) GetRepo(name string) (*model.GbRepos, error) {
 
 func (rt *RedisTool) GetAllReposNames() ([]string, error) {
 	// 从数据库获取
-	temp := model.GbRepos{}
+	temp := GbRepos{}
 	records, err := temp.GetAll()
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
@@ -259,9 +258,9 @@ func (rt *RedisTool) GetAllReposNames() ([]string, error) {
 		return nil, err
 	}
 	// 将Record接口转化为GbRepos
-	var repos []model.GbRepos
+	var repos []GbRepos
 	for _, record := range *records {
-		repo, ok := record.(*model.GbRepos)
+		repo, ok := record.(*GbRepos)
 		if !ok {
 			log.Log.WithFields(logrus.Fields{
 				"error": "类型转化失败",

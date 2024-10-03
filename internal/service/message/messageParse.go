@@ -74,7 +74,7 @@ func MessageParse(c echo.Context) error {
 	} else if setItem, ok := matchGithubSet(message); ok {
 		repoName := setItem[0]
 		repoUrl := setItem[1]
-		err := database.Redis.AddNewRepo(&model.GbRepos{
+		err := database.Redis.AddNewRepo(&database.GbRepos{
 			RepoName: repoName,
 			Url:      repoUrl,
 		})

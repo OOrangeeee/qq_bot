@@ -1,7 +1,6 @@
-package model
+package database
 
 import (
-	"GitHubBot/internal/database"
 	"gorm.io/gorm"
 )
 
@@ -13,15 +12,15 @@ type GbRepos struct {
 }
 
 func (gb *GbRepos) Add() error {
-	return database.DB.DataBase.Create(gb).Error
+	return DB.DataBase.Create(gb).Error
 }
 
 func (gb *GbRepos) Delete() error {
-	return database.DB.DataBase.Unscoped().Where("id = ?", gb.ID).Delete(gb).Error
+	return DB.DataBase.Unscoped().Where("id = ?", gb.ID).Delete(gb).Error
 }
 
 func (gb *GbRepos) Update() error {
-	return database.DB.DataBase.Model(&GbRepos{}).Where("id = ?", gb.ID).Updates(map[string]interface{}{
+	return DB.DataBase.Model(&GbRepos{}).Where("id = ?", gb.ID).Updates(map[string]interface{}{
 		"token":     gb.Token,
 		"repo_name": gb.RepoName,
 		"url":       gb.Url,
@@ -32,7 +31,7 @@ func (gb *GbRepos) GetByStr(str string, value string) error {
 	// 清空结构体
 	*gb = GbRepos{}
 	var repos []*GbRepos
-	result := database.DB.DataBase.Find(&repos, str+" = ?", value)
+	result := DB.DataBase.Find(&repos, str+" = ?", value)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -48,7 +47,7 @@ func (gb *GbRepos) GetByToken(token string) error {
 	// 清空结构体
 	*gb = GbRepos{}
 	var repos []*GbRepos
-	result := database.DB.DataBase.Find(&repos, "token = ?", token)
+	result := DB.DataBase.Find(&repos, "token = ?", token)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -60,13 +59,13 @@ func (gb *GbRepos) GetByToken(token string) error {
 	return nil
 }
 
-func (gb *GbRepos) GetAll() (*[]database.Record, error) {
+func (gb *GbRepos) GetAll() (*[]Record, error) {
 	var repos []*GbRepos
-	result := database.DB.DataBase.Find(&repos)
+	result := DB.DataBase.Find(&repos)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	var records []database.Record
+	var records []Record
 	for _, repo := range repos {
 		records = append(records, repo)
 	}
@@ -77,7 +76,7 @@ func (gb *GbRepos) GetTokenByStr(str string, value string) (string, error) {
 	// 清空结构体
 	*gb = GbRepos{}
 	var repos []*GbRepos
-	result := database.DB.DataBase.Find(&repos, str+" = ?", value)
+	result := DB.DataBase.Find(&repos, str+" = ?", value)
 	if result.Error != nil {
 		return "", result.Error
 	}
