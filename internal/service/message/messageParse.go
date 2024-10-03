@@ -32,6 +32,12 @@ func MessageParse(c echo.Context) error {
 	fromIdInt := event.UserId
 	groupIdInt := event.GroupId
 	fromId := strconv.Itoa(int(fromIdInt))
+	log.Log.WithFields(logrus.Fields{
+		"message": message,
+		"fromId":  fromIdInt,
+		"groupId": groupIdInt,
+		"type":    message_type,
+	}).Info("接收到消息")
 	if repos, ok := matchGithubGet(message); ok {
 		var ans string
 		if message_type == "group" {
