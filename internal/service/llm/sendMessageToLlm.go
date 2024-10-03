@@ -53,8 +53,6 @@ func SendMessage(apiKey string, messages []Message) (string, error) {
 		return "", fmt.Errorf("error marshaling request data: %v", err)
 	}
 
-	log.Log.Info(string(jsonData))
-
 	// 创建HTTP请求
 	req, err := http.NewRequest("POST", "https://open.bigmodel.cn/api/paas/v4/chat/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
