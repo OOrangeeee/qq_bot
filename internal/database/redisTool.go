@@ -283,6 +283,98 @@ func (rt *RedisTool) GetAllReposNames() ([]string, error) {
 	return names, nil
 }
 
+func (rt *RedisTool) AddNewMessage(message *Message) error {
+	ifExist, err := rt.IfMessageExist(message.Token)
+	if err != nil {
+		return err
+	}
+	if ifExist {
+		return errors.New("消息已存在")
+	}
+	// 异步更新数据库
+	rt.taskQueue <- RedisTask{
+		taskType: "add",
+		val:      message,
+	}
+	// 添加到布隆过滤器
+	rt.bloomMap.Store("message"+message.Token, true)
+	return nil
+}
+
+func (rt *RedisTool) DeleteMessage(message *Message) error {
+	// 异步更新数据库
+	rt.taskQueue <- RedisTask{
+		taskType: "delete",
+		val:      message,
+	}
+	// 从布隆过滤器删除
+	rt.bloomMap.Delete("message" + message.Token)
+	return nil
+}
+
+func (rt *RedisTool) UpdateMessage(message *Message) error {
+	// 异步更新数据库
+	rt.taskQueue <- RedisTask{
+		taskType: "update",
+		val:      message,
+	}
+	return nil
+}
+
+func (rt *RedisTool) IfMessageExist(token string) (bool, error) {
+	// 布隆过滤器判断
+	if value, ok := rt.bloomMap.Load("message" + token); !ok || !value.(bool) {
+		return false, nil
+	}
+	tmp := Message{}
+	err := tmp.GetByToken(token)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("从数据库获取token失败")
+		return false, err
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	// 可以根据token从数据库获取则说明存在
+	return true, nil
+}
+
+// GetMessages 根据id获得id1作为fromId，id2作为toId的最近的10条消息，如果不够就有多少返回多少
+func (rt *RedisTool) GetMessages(fromId, toId int) (*[]*Message, error) {
+	// 从数据库获取
+	temp := Message{}
+	// messages是*[]*Message
+	messages, err := temp.GetByFromId(fromId)
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("从数据库获取所有消息失败")
+		return nil, err
+	}
+	// 从messages中筛选出时间最近的前十条toId的消息，用message的Time字段排序
+	// 从messages中筛选出toId的消息
+	var result []*Message
+	for _, message := range *messages {
+		if message.ToId == toId {
+			result = append(result, message)
+		}
+	}
+	// 对result按照Time字段排序
+	for i := 0; i < len(result); i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[i].Time.Before(result[j].Time) {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+	// 取前十条
+	if len(result) > 10 {
+		result = result[:10]
+	}
+	return &result, nil
+}
+
 func (rt *RedisTool) cachePreheating() {
 	names, err := rt.GetAllReposNames()
 	if err != nil {
@@ -292,6 +384,31 @@ func (rt *RedisTool) cachePreheating() {
 	}
 	for _, name := range names {
 		rt.bloomMap.Store("repo"+name, true)
+	}
+	// 从数据库获取所有消息
+	temp := Message{}
+	records, err := temp.GetAll()
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Panic("从数据库获取所有消息失败")
+	}
+	if records == nil {
+		return
+	}
+	// 将Record接口转化为Message
+	var messages []Message
+	for _, record := range *records {
+		message, ok := record.(*Message)
+		if !ok {
+			log.Log.WithFields(logrus.Fields{
+				"error": "类型转化失败",
+			}).Panic("类型转化失败")
+		}
+		messages = append(messages, *message)
+	}
+	for _, message := range messages {
+		rt.bloomMap.Store("message"+message.Token, true)
 	}
 }
 
