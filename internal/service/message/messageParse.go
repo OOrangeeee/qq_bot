@@ -257,10 +257,6 @@ func MessageParse(c echo.Context) error {
 				Content: config.Config.AppConfig.Llm.VipMessage,
 			})
 		}
-		messageSend = append(messageSend, llmService.Message{
-			Role:    "user",
-			Content: message,
-		})
 		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
@@ -303,6 +299,10 @@ func MessageParse(c echo.Context) error {
 				})
 			}
 		}
+		messageSend = append(messageSend, llmService.Message{
+			Role:    "user",
+			Content: message,
+		})
 		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
