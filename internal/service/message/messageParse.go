@@ -220,6 +220,7 @@ func MessageParse(c echo.Context) error {
 	} else {
 		// 存储消息
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
+		log.Log.Info("qq:" + strconv.Itoa(qq))
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
 				"error": err.Error(),
@@ -280,21 +281,21 @@ func MessageParse(c echo.Context) error {
 		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
 		sendMessages, err := database.Redis.GetMessages(qq, int(fromIdInt))
 		if getMessages != nil {
-			for _, messageTmp := range *getMessages {
+			for _, messageTmp1 := range *getMessages {
 				messageSend = append(messageSend, llmService.Message{
 					Role:    "user",
-					Content: messageTmp.Text,
+					Content: messageTmp1.Text,
 				})
-				log.Log.Info("user: " + messageTmp.Text)
+				log.Log.Info("user: " + messageTmp1.Text)
 			}
 		}
 		if sendMessages != nil {
-			for _, messageTmp := range *sendMessages {
+			for _, messageTmp2 := range *sendMessages {
 				messageSend = append(messageSend, llmService.Message{
 					Role:    "assistant",
-					Content: messageTmp.Text,
+					Content: messageTmp2.Text,
 				})
-				log.Log.Info("assistant: " + messageTmp.Text)
+				log.Log.Info("assistant: " + messageTmp2.Text)
 			}
 		}
 		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
