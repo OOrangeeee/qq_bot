@@ -220,29 +220,12 @@ func MessageParse(c echo.Context) error {
 	} else {
 		// 存储消息
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
-		log.Log.Info("qq:" + strconv.Itoa(qq))
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
 				"error": err.Error(),
 			}).Error("qq转换失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！qq转换失败呜呜呜",
-			})
-		}
-		newMessage := &database.Message{
-			Token:  util.GenerateUUID(),
-			FromId: int(fromIdInt),
-			ToId:   qq,
-			Text:   message,
-			Time:   time.Now(),
-		}
-		err = database.Redis.AddNewMessage(newMessage)
-		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("存储消息失败")
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"reply": "橙子报告！存储消息失败呜呜呜",
 			})
 		}
 		var ans string
@@ -286,7 +269,6 @@ func MessageParse(c echo.Context) error {
 					Role:    "user",
 					Content: messageTmp1.Text,
 				})
-				log.Log.Info("user: " + messageTmp1.Text)
 			}
 		}
 		if sendMessages != nil {
@@ -295,7 +277,6 @@ func MessageParse(c echo.Context) error {
 					Role:    "assistant",
 					Content: messageTmp2.Text,
 				})
-				log.Log.Info("assistant: " + messageTmp2.Text)
 			}
 		}
 		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
@@ -305,6 +286,22 @@ func MessageParse(c echo.Context) error {
 			}).Error("发送消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！发送消息失败呜呜呜",
+			})
+		}
+		newMessage := &database.Message{
+			Token:  util.GenerateUUID(),
+			FromId: int(fromIdInt),
+			ToId:   qq,
+			Text:   message,
+			Time:   time.Now(),
+		}
+		err = database.Redis.AddNewMessage(newMessage)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("存储消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！存储消息失败呜呜呜",
 			})
 		}
 		newMessage = &database.Message{
