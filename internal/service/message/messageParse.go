@@ -285,6 +285,7 @@ func MessageParse(c echo.Context) error {
 					Role:    "user",
 					Content: messageTmp.Text,
 				})
+				log.Log.Info("user: " + messageTmp.Text)
 			}
 		}
 		if sendMessages != nil {
@@ -293,6 +294,7 @@ func MessageParse(c echo.Context) error {
 					Role:    "assistant",
 					Content: messageTmp.Text,
 				})
+				log.Log.Info("assistant: " + messageTmp.Text)
 			}
 		}
 		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
