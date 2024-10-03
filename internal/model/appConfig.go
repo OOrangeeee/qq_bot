@@ -44,4 +44,5 @@ type llm struct {
 type qqConfig struct {
 	BotUrl   string `json:"bot-url"`
 	BotToken string `json:"bot-token"`
+	BotQQ    string `json:"bot-qq"`
 }
