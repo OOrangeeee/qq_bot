@@ -1,5 +1,10 @@
 package model
 
+import (
+	"gorm.io/gorm"
+	"time"
+)
+
 type Event struct {
 	Time        uint   `json:"time"`
 	SelfId      uint   `json:"self_id"`
@@ -15,5 +20,14 @@ type Event struct {
 		Nickname string `json:"nickname"`
 		Sex      string `json:"sex"`
 		Age      int    `json:"age"`
-	}
+	} `json:"sender"`
+}
+
+type Message struct {
+	gorm.Model
+	token  string    `gorm:"unique;not null"`
+	fromId uint      `gorm:"not null"`
+	toId   uint      `gorm:"not null"`
+	text   string    `gorm:"not null"`
+	time   time.Time `gorm:"not null"`
 }

@@ -7,9 +7,11 @@ import (
 	"GitHubBot/internal/model"
 	githubService "GitHubBot/internal/service/github"
 	llmService "GitHubBot/internal/service/llm"
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -48,10 +50,14 @@ func MessageParse(c echo.Context) error {
 				continue
 			}
 			repo, err := database.Redis.GetRepo(repoName)
-			if err != nil || repo == nil {
+			if (err != nil && !errors.Is(err, gorm.ErrRecordNotFound)) || repo == nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！从数据库获取仓库信息失败呜呜呜",
 				})
+			} else if errors.Is(err, gorm.ErrRecordNotFound) {
+				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
+				ans += "-\n"
+				continue
 			}
 			ansTmp, err := githubService.GetInfoOfRepo(repo.RepoName, repo.Url)
 			if err != nil {
@@ -111,10 +117,9 @@ func MessageParse(c echo.Context) error {
 				continue
 			}
 			repo, err := database.Redis.GetRepo(repoName)
-			if err != nil {
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 				ans += fmt.Sprintf("+++++\n从数据库获取仓库 %s 信息失败\n+++++\n", repoName)
-			}
-			if repo == nil {
+			} else if errors.Is(err, gorm.ErrRecordNotFound) || repo == nil {
 				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
 			}
 			err = database.Redis.DeleteRepo(repo)
