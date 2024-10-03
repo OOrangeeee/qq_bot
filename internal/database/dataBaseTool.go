@@ -3,7 +3,6 @@ package database
 import (
 	"GitHubBot/internal/config"
 	"GitHubBot/internal/log"
-	"GitHubBot/internal/model"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -61,7 +60,7 @@ func InitDataBase() {
 	log.Log.WithFields(logrus.Fields{
 		"database": "链接数据库成功",
 	}).Info("链接数据库成功")
-	err = DB.DataBase.AutoMigrate(&model.GbRepos{})
+	err = DB.DataBase.AutoMigrate(&GbRepos{})
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
