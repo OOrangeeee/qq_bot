@@ -131,8 +131,15 @@ func (rt *RedisTool) cacheRepo(repo *GbRepos) error {
 }
 
 func (rt *RedisTool) AddNewRepo(repo *GbRepos) error {
+	ifExist, err := rt.IfRepoExist(repo.RepoName)
+	if err != nil {
+		return err
+	}
+	if ifExist {
+		return errors.New("仓库已存在")
+	}
 	// 存入缓存
-	err := rt.cacheRepo(repo)
+	err = rt.cacheRepo(repo)
 	if err != nil {
 		return err
 	}
