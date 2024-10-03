@@ -262,17 +262,41 @@ func MessageParse(c echo.Context) error {
 			Content: message,
 		})
 		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("从数据库获取消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
+			})
+		}
 		sendMessages, err := database.Redis.GetMessages(qq, int(fromIdInt))
-		if getMessages != nil {
-			for _, messageTmp1 := range *getMessages {
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("从数据库获取消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
+			})
+		}
+		if getMessages != nil && sendMessages != nil {
+			if len(*getMessages) != len(*sendMessages) {
+				log.Log.WithFields(logrus.Fields{
+					"len(*getMessages)":  len(*getMessages),
+					"len(*sendMessages)": len(*sendMessages),
+				}).Error("从数据库获取消息有误")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！从数据库获取消息有误呜呜呜",
+				})
+			}
+			length := len(*getMessages)
+			for i := length - 1; i >= 0; i-- {
+				messageTmp1 := (*getMessages)[i]
 				messageSend = append(messageSend, llmService.Message{
 					Role:    "user",
 					Content: messageTmp1.Text,
 				})
-			}
-		}
-		if sendMessages != nil {
-			for _, messageTmp2 := range *sendMessages {
+				messageTmp2 := (*sendMessages)[i]
 				messageSend = append(messageSend, llmService.Message{
 					Role:    "assistant",
 					Content: messageTmp2.Text,
