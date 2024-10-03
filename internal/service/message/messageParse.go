@@ -311,7 +311,7 @@ func MessageParse(c echo.Context) error {
 			Token:  util.GenerateUUID(),
 			FromId: qq,
 			ToId:   int(fromIdInt),
-			Text:   message,
+			Text:   ansTmp,
 			Time:   time.Now(),
 		}
 		err = database.Redis.AddNewMessage(newMessage)
