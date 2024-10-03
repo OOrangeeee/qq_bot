@@ -38,12 +38,7 @@ func MessageParse(c echo.Context) error {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
 		// 编写ans
-		for num, repoName := range repos {
-			if num >= 3 {
-				ans += "+++++\n由于时间限制最多只能查询三个仓库信息\n+++++\n"
-				ans += "-\n"
-				break
-			}
+		for _, repoName := range repos {
 			ifExist, err := database.Redis.IfRepoExist(repoName)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
