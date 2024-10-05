@@ -217,8 +217,86 @@ func MessageParse(c echo.Context) error {
 			}
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
+	} else if strings.EqualFold(message, "/chat-clear") {
+		// 转化qq为整数
+		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("qq转换失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！qq转换失败呜呜呜",
+			})
+		}
+		// 清空聊天记录
+		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("从数据库获取消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
+			})
+		}
+		sendMessages, err := database.Redis.GetMessages(qq, int(fromIdInt))
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("从数据库获取消息失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
+			})
+		}
+		if getMessages != nil {
+			for _, messageTmp := range *getMessages {
+				err = database.Redis.DeleteMessage(messageTmp)
+				if err != nil {
+					log.Log.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("删除消息失败")
+					return c.JSON(http.StatusOK, map[string]interface{}{
+						"reply": "橙子报告！删除消息失败呜呜呜",
+					})
+				}
+			}
+		}
+		if sendMessages != nil {
+			for _, messageTmp := range *sendMessages {
+				err = database.Redis.DeleteMessage(messageTmp)
+				if err != nil {
+					log.Log.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("删除消息失败")
+					return c.JSON(http.StatusOK, map[string]interface{}{
+						"reply": "橙子报告！删除消息失败呜呜呜",
+					})
+				}
+			}
+		}
+		if message_type == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！清空聊天记录成功！！！", fromId))
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		} else {
+			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), "橙子报告！清空聊天记录成功！！！")
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else {
-		// 存储消息
+		// 转化qq为整数
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
@@ -286,6 +364,9 @@ func MessageParse(c echo.Context) error {
 				})
 			}
 			length := len(*getMessages)
+			if length > 5 {
+				length = 5
+			}
 			for i := length - 1; i >= 0; i-- {
 				messageTmp1 := (*getMessages)[i]
 				messageSend = append(messageSend, llmService.Message{

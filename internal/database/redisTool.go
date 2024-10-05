@@ -340,7 +340,7 @@ func (rt *RedisTool) IfMessageExist(token string) (bool, error) {
 	return true, nil
 }
 
-// GetMessages 根据id获得id1作为fromId，id2作为toId的最近的10条消息，如果不够就有多少返回多少
+// GetMessages 根据id获得最近消息
 func (rt *RedisTool) GetMessages(fromId, toId int) (*[]*Message, error) {
 	// 从数据库获取
 	temp := Message{}
@@ -367,10 +367,6 @@ func (rt *RedisTool) GetMessages(fromId, toId int) (*[]*Message, error) {
 				result[i], result[j] = result[j], result[i]
 			}
 		}
-	}
-	// 取前十条
-	if len(result) > 10 {
-		result = result[:10]
 	}
 	return &result, nil
 }
