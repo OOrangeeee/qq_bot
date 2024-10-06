@@ -52,4 +52,5 @@ type qqConfig struct {
 type gaode struct {
 	Key         string `json:"key"`
 	DiLiCodeUrl string `json:"di-li-code-url"`
+	WeatherUrl  string `json:"weather-url"`
 }
