@@ -31,13 +31,13 @@ func MessageParse(c echo.Context) error {
 		})
 	}
 	message := event.Message
-	message_type := event.MessageType
+	messageType := event.MessageType
 	fromIdInt := event.UserId
 	groupIdInt := event.GroupId
 	fromId := strconv.Itoa(int(fromIdInt))
 	if repos, ok := matchGithubGet(message); ok {
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
 		// 编写ans
@@ -73,7 +73,7 @@ func MessageParse(c echo.Context) error {
 			ans += dividingLine
 		}
 		ans = ans[:len(ans)-len(dividingLine)]
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -91,7 +91,7 @@ func MessageParse(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if strings.EqualFold(message, "/gb-get-all") {
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
 		names, err := database.Redis.GetAllReposNames()
@@ -118,7 +118,7 @@ func MessageParse(c echo.Context) error {
 		}
 		// 删除最后一个分割线
 		ans = ans[:len(ans)-len(dividingLine)]
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -146,7 +146,7 @@ func MessageParse(c echo.Context) error {
 				"reply": "橙子报告！数据库中已经有这个仓库信息了呜呜呜",
 			})
 		}
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！添加仓库 %s 成功！！！", fromId, repoName))
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -171,7 +171,7 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
 		for _, name := range allNames {
@@ -182,7 +182,7 @@ func MessageParse(c echo.Context) error {
 		} else {
 			ans += "+++++"
 		}
-		if message_type == "group" {
+		if messageType == "group" {
 			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -201,7 +201,7 @@ func MessageParse(c echo.Context) error {
 	} else if delItem, ok := matchGithubDel(message); ok {
 		// 删除仓库信息
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
 		for _, repoName := range delItem {
@@ -230,7 +230,7 @@ func MessageParse(c echo.Context) error {
 			ans += dividingLine
 		}
 		ans = ans[:len(ans)-len(dividingLine)]
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -287,7 +287,7 @@ func MessageParse(c echo.Context) error {
 				}
 			}
 		}
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！清空聊天记录成功！！！", fromId))
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -321,7 +321,7 @@ func MessageParse(c echo.Context) error {
 				"reply": "橙子报告！城市信息已经存在呜呜呜",
 			})
 		}
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！添加城市 %s 成功！！！", fromId, city))
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -339,7 +339,7 @@ func MessageParse(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if cities, ok := matchWeatherGet(message); ok {
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
 		for _, city := range cities {
@@ -364,7 +364,7 @@ func MessageParse(c echo.Context) error {
 			ans += dividingLine
 		}
 		ans = ans[:len(ans)-len(dividingLine)]
-		if message_type == "group" {
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -422,7 +422,7 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			if strings.Contains(message, "[CQ:at,qq="+config.Config.AppConfig.QQ.BotQQ+"]") {
 				ans += "[CQ:at,qq=" + fromId + "]\n"
 			} else {
@@ -440,7 +440,7 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		ans += ansTmp
-		if message_type == "group" {
+		if messageType == "group" {
 			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 		} else {
 			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
@@ -452,8 +452,8 @@ func MessageParse(c echo.Context) error {
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if strings.EqualFold(message, "/start") {
-		go weatherService.SendWeatherMessage()
-		if message_type == "group" {
+		go SendWeatherMessage()
+		if messageType == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), "[CQ:at,qq="+fromId+"]\n"+"橙子报告！开始发送天气消息！！！")
 			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
@@ -478,7 +478,7 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		var ans string
-		if message_type == "group" {
+		if messageType == "group" {
 			if strings.Contains(message, "[CQ:at,qq="+config.Config.AppConfig.QQ.BotQQ+"]") {
 				ans += "[CQ:at,qq=" + fromId + "]\n"
 			} else {
@@ -580,7 +580,7 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		ans += ansTmp
-		if message_type == "group" {
+		if messageType == "group" {
 			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 		} else {
 			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
