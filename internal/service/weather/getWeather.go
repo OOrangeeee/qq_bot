@@ -205,15 +205,15 @@ func SendWeatherMessage() {
 		if now.Hour() >= 7 {
 			next = next.AddDate(0, 0, 1) // 如果已经过了今天的7点，则计划在明天的7点执行
 		}
-		next = time.Date(next.Year(), next.Month(), next.Day(), 3, 33, 0, 0, location)
+		next = time.Date(next.Year(), next.Month(), next.Day(), 3, 38, 0, 0, location)
 		duration := next.Sub(now)
 		time.Sleep(duration) // 等待直到下一个7点
+		log.Log.Info("开始发送天气预报")
 		cities, err := database.Redis.GetAllCities()
 		if err != nil {
 			log.Log.WithFields(logrus.Fields{
 				"error": err.Error(),
 			}).Error("获取城市列表失败")
-			return
 		}
 		for _, city := range *cities {
 			var messageSend []llmService.Message
@@ -238,12 +238,18 @@ func SendWeatherMessage() {
 				}
 				cityInfo, err := database.Redis.GetCity(city.City)
 				if err != nil {
-					return
+					log.Log.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("获取城市信息失败")
+					continue
 				}
 				code := cityInfo.DiLiCode
 				weatherInfo, err := GetWeather(code, "all")
 				if err != nil {
-					return
+					log.Log.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("获取天气失败")
+					continue
 				}
 				var ans string
 				messageSend = append(messageSend, llmService.Message{
@@ -252,12 +258,18 @@ func SendWeatherMessage() {
 				})
 				ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
 				if err != nil {
-					return
+					log.Log.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("发送消息失败")
+					continue
 				}
 				ans += ansTmp
 				err = service.SendMessageToQQ("private", vipInt, 0, ans)
 				if err != nil {
-					return
+					log.Log.WithFields(logrus.Fields{
+						"error": err.Error(),
+					}).Error("发送消息失败")
+					continue
 				}
 			}
 		}
