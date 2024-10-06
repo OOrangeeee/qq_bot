@@ -380,6 +380,77 @@ func MessageParse(c echo.Context) error {
 			}
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
+	} else if city, ok := matchChatWeatherGet(message); ok {
+		var messageSend []llmService.Message
+		messageSend = make([]llmService.Message, 0)
+		messageSend = append(messageSend, llmService.Message{
+			Role:    "user",
+			Content: config.Config.AppConfig.Character.Describe,
+		})
+		vipStr := config.Config.AppConfig.Llm.VipQQ
+		vips := strings.Split(vipStr, ",")
+		isVip := false
+		for _, vip := range vips {
+			if vip == fromId {
+				isVip = true
+				break
+			}
+		}
+		if isVip {
+			messageSend = append(messageSend, llmService.Message{
+				Role:    "user",
+				Content: config.Config.AppConfig.Llm.VipMessage,
+			})
+		} else {
+			return c.JSON(http.StatusOK, map[string]interface{}{})
+		}
+		cityInfo, err := database.Redis.GetCity(city)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！从数据库获取城市信息失败呜呜呜",
+			})
+		} else if errors.Is(err, gorm.ErrRecordNotFound) || cityInfo == nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！数据库中没有城市信息呜呜呜",
+			})
+		}
+		code := cityInfo.DiLiCode
+		weatherInfo, err := weatherService.GetWeather(code, "all")
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！获取天气信息失败呜呜呜",
+			})
+		}
+		var ans string
+		if message_type == "group" {
+			if strings.Contains(message, "[CQ:at,qq="+config.Config.AppConfig.QQ.BotQQ+"]") {
+				ans += "[CQ:at,qq=" + fromId + "]\n"
+			} else {
+				return c.JSON(http.StatusOK, map[string]interface{}{})
+			}
+		}
+		messageSend = append(messageSend, llmService.Message{
+			Role:    "user",
+			Content: weatherInfo + config.Config.AppConfig.Llm.WeatherMessage,
+		})
+		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！发送消息失败呜呜呜",
+			})
+		}
+		ans += ansTmp
+		if message_type == "group" {
+			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
+		} else {
+			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+		}
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！回复消息失败呜呜呜",
+			})
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else {
 		// 转化qq为整数
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
@@ -610,4 +681,26 @@ func matchWeatherGet(input string) ([]string, bool) {
 		}
 	}
 	return nil, false
+}
+
+// matchChatWeatherGet 检查字符串是否符合 "/chat-weather-get *****" 模式，并返回匹配后的非空格字符串和匹配结果
+func matchChatWeatherGet(input string) (string, bool) {
+	// 编译正则表达式，确保格式正确：`/chat-weather-get` 后仅跟一个字符串
+	regex, err := regexp.Compile(`^/chat-weather-get\s+(\S+)$`)
+	if err != nil {
+		fmt.Println("Invalid regex:", err)
+		return "", false
+	}
+	// 检查字符串是否精确匹配正则表达式
+	if regex.MatchString(input) {
+		// 使用 FindStringSubmatch 获取所有匹配的部分，其中第一个元素是整个匹配，第二个元素是捕获的子表达式
+		matches := regex.FindStringSubmatch(input)
+		// 检查是否确实只有一个捕获组（加上整个匹配的元素共两个）
+		if len(matches) == 2 {
+			// 返回捕获的字符串和 true
+			return matches[1], true
+		}
+	}
+	// 如果不符合正则表达式，或捕获组数量不对，返回空切片和 false
+	return "", false
 }

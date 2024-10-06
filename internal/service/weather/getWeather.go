@@ -29,6 +29,7 @@ type ResponseBodyWeather struct {
 	InfoCode string `json:"infocode"`
 	Lives    []struct {
 		Weather       string `json:"weather"`
+		City          string `json:"city"`
 		Temperature   string `json:"temperature"`
 		Winddirection string `json:"winddirection"`
 		Windpower     string `json:"windpower"`
@@ -37,6 +38,7 @@ type ResponseBodyWeather struct {
 	} `json:"lives"`
 	Forecasts []struct {
 		Reporttime string `json:"reporttime"`
+		City       string `json:"city"`
 		Casts      []struct {
 			Date         string `json:"date"`
 			Week         string `json:"week"`
@@ -163,6 +165,7 @@ func GetWeather(diLiCode string, typeCode string) (string, error) {
 		// 组合成天气预报的字符串，尽可能包含所有信息
 		var weather string
 		weather += "天气预报\n"
+		weather += "城市：" + responseBody.Lives[0].City + "\n"
 		weather += "更新时间：" + responseBody.Lives[0].Reporttime + "\n"
 		weather += "天气：" + responseBody.Lives[0].Weather + "\n" + "温度：" + responseBody.Lives[0].Temperature + "℃\n" + "风向：" + responseBody.Lives[0].Winddirection + "\n" + "风力：" + responseBody.Lives[0].Windpower + "\n" + "湿度：" + responseBody.Lives[0].Humidity + "\n"
 		return weather, nil
@@ -170,6 +173,7 @@ func GetWeather(diLiCode string, typeCode string) (string, error) {
 		// 组合成天气预报的字符串，尽可能包含所有信息，包括未来几天的天气预报，casts[0]表示今天，casts[1]表示明天，以此类推
 		var weather string
 		weather += "天气预报\n"
+		weather += "城市：" + responseBody.Forecasts[0].City + "\n"
 		weather += "今日日期：" + responseBody.Forecasts[0].Casts[0].Date + "\n"
 		weather += "更新时间：" + responseBody.Forecasts[0].Reporttime + "\n"
 		for _, cast := range responseBody.Forecasts[0].Casts {
