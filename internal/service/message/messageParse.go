@@ -21,6 +21,8 @@ import (
 )
 
 func MessageParse(c echo.Context) error {
+	// dividingLine
+	dividingLine := "🍊🍊🍊🍊🍊\n"
 	eventTmp := c.Get("event")
 	event, ok := eventTmp.(*model.Event)
 	if !ok {
@@ -48,7 +50,7 @@ func MessageParse(c echo.Context) error {
 			}
 			if !ifExist {
 				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
-				ans += "-\n"
+				ans += dividingLine
 				continue
 			}
 			repo, err := database.Redis.GetRepo(repoName)
@@ -58,7 +60,7 @@ func MessageParse(c echo.Context) error {
 				})
 			} else if errors.Is(err, gorm.ErrRecordNotFound) {
 				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
-				ans += "-\n"
+				ans += dividingLine
 				continue
 			}
 			ansTmp, err := githubService.GetInfoOfRepo(repo.RepoName, repo.Url)
@@ -68,9 +70,9 @@ func MessageParse(c echo.Context) error {
 				continue
 			}
 			ans += ansTmp
-			ans += "-\n"
+			ans += dividingLine
 		}
-		ans += "+++++"
+		ans = ans[:len(ans)-len(dividingLine)]
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
@@ -108,7 +110,6 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		for _, name := range names {
-			ans += fmt.Sprintf("+++++\n%s\n", name)
 			repo, err := database.Redis.GetRepo(name)
 			if err != nil {
 				log.Log.WithFields(logrus.Fields{
@@ -125,9 +126,10 @@ func MessageParse(c echo.Context) error {
 				continue
 			}
 			ans += ansTmp
-			ans += "-\n"
+			ans += dividingLine
 		}
-		ans += "+++++"
+		// 删除最后一个分割线
+		ans = ans[:len(ans)-len(dividingLine)]
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
@@ -238,7 +240,7 @@ func MessageParse(c echo.Context) error {
 			}
 			if !ifExist {
 				ans += fmt.Sprintf("+++++\n数据库中没有仓库 %s 信息\n+++++\n", repoName)
-				ans += "-\n"
+				ans += dividingLine
 				continue
 			}
 			repo, err := database.Redis.GetRepo(repoName)
@@ -252,9 +254,9 @@ func MessageParse(c echo.Context) error {
 				ans += fmt.Sprintf("+++++\n删除仓库 %s 信息失败\n+++++\n", repoName)
 			}
 			ans += fmt.Sprintf("+++++\n删除仓库 %s 信息成功\n+++++\n", repoName)
-			ans += "-\n"
+			ans += dividingLine
 		}
-		ans += "+++++"
+		ans = ans[:len(ans)-len(dividingLine)]
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
