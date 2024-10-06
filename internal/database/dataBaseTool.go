@@ -70,4 +70,10 @@ func InitDataBase() {
 			"error": err.Error(),
 		}).Panic("创建消息表失败")
 	}
+	err = DB.DataBase.AutoMigrate(&City{})
+	if err != nil {
+		log.Log.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Panic("创建城市表失败")
+	}
 }
