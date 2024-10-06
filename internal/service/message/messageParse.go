@@ -7,7 +7,7 @@ import (
 	"GitHubBot/internal/model"
 	githubService "GitHubBot/internal/service/github"
 	llmService "GitHubBot/internal/service/llm"
-	"GitHubBot/internal/util"
+	weatherService "GitHubBot/internal/service/weather"
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -76,9 +76,6 @@ func MessageParse(c echo.Context) error {
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -86,9 +83,6 @@ func MessageParse(c echo.Context) error {
 		} else {
 			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -102,9 +96,6 @@ func MessageParse(c echo.Context) error {
 		}
 		names, err := database.Redis.GetAllReposNames()
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("获取所有仓库名失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！获取所有仓库名失败呜呜呜",
 			})
@@ -112,9 +103,6 @@ func MessageParse(c echo.Context) error {
 		for _, name := range names {
 			repo, err := database.Redis.GetRepo(name)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("获取仓库信息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！获取仓库信息失败呜呜呜",
 				})
@@ -133,9 +121,6 @@ func MessageParse(c echo.Context) error {
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -143,9 +128,6 @@ func MessageParse(c echo.Context) error {
 		} else {
 			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -156,7 +138,6 @@ func MessageParse(c echo.Context) error {
 		repoName := setItem[0]
 		repoUrl := setItem[1]
 		err := database.Redis.AddNewRepo(&database.GbRepos{
-			Token:    util.GenerateUUID(),
 			RepoName: repoName,
 			Url:      repoUrl,
 		})
@@ -168,9 +149,6 @@ func MessageParse(c echo.Context) error {
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！添加仓库 %s 成功！！！", fromId, repoName))
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -178,9 +156,6 @@ func MessageParse(c echo.Context) error {
 		} else {
 			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), fmt.Sprintf("橙子报告！添加仓库 %s 成功！！！", repoName))
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -206,9 +181,6 @@ func MessageParse(c echo.Context) error {
 		if message_type == "group" {
 			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -216,9 +188,6 @@ func MessageParse(c echo.Context) error {
 		} else {
 			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -260,9 +229,6 @@ func MessageParse(c echo.Context) error {
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -270,9 +236,6 @@ func MessageParse(c echo.Context) error {
 		} else {
 			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -283,9 +246,6 @@ func MessageParse(c echo.Context) error {
 		// 转化qq为整数
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("qq转换失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！qq转换失败呜呜呜",
 			})
@@ -293,18 +253,12 @@ func MessageParse(c echo.Context) error {
 		// 清空聊天记录
 		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("从数据库获取消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
 			})
 		}
 		sendMessages, err := database.Redis.GetMessages(qq, int(fromIdInt))
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("从数据库获取消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
 			})
@@ -313,9 +267,6 @@ func MessageParse(c echo.Context) error {
 			for _, messageTmp := range *getMessages {
 				err = database.Redis.DeleteMessage(messageTmp)
 				if err != nil {
-					log.Log.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("删除消息失败")
 					return c.JSON(http.StatusOK, map[string]interface{}{
 						"reply": "橙子报告！删除消息失败呜呜呜",
 					})
@@ -326,9 +277,6 @@ func MessageParse(c echo.Context) error {
 			for _, messageTmp := range *sendMessages {
 				err = database.Redis.DeleteMessage(messageTmp)
 				if err != nil {
-					log.Log.WithFields(logrus.Fields{
-						"error": err.Error(),
-					}).Error("删除消息失败")
 					return c.JSON(http.StatusOK, map[string]interface{}{
 						"reply": "橙子报告！删除消息失败呜呜呜",
 					})
@@ -338,9 +286,6 @@ func MessageParse(c echo.Context) error {
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！清空聊天记录成功！！！", fromId))
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -348,9 +293,40 @@ func MessageParse(c echo.Context) error {
 		} else {
 			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), "橙子报告！清空聊天记录成功！！！")
 			if err != nil {
-				log.Log.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
+	} else if stringTmp, ok := matchWeatherSet(message); ok {
+		city := stringTmp[0]
+		address := stringTmp[1]
+		diliCode, err := weatherService.GetDiLiCode(address, city)
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！获取地理编码失败呜呜呜",
+			})
+		}
+		err = database.Redis.AddNewCity(&database.City{
+			City:     city,
+			DiLiCode: diliCode,
+		})
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！城市信息已经存在呜呜呜",
+			})
+		}
+		if message_type == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), fmt.Sprintf("[CQ:at,qq=%s]\n"+"橙子报告！添加城市 %s 成功！！！", fromId, city))
+			if err != nil {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		} else {
+			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), fmt.Sprintf("橙子报告！添加城市 %s 成功！！！", city))
+			if err != nil {
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"reply": "橙子报告！回复消息失败呜呜呜",
 				})
@@ -361,9 +337,6 @@ func MessageParse(c echo.Context) error {
 		// 转化qq为整数
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("qq转换失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！qq转换失败呜呜呜",
 			})
@@ -399,18 +372,12 @@ func MessageParse(c echo.Context) error {
 		}
 		getMessages, err := database.Redis.GetMessages(int(fromIdInt), qq)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("从数据库获取消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
 			})
 		}
 		sendMessages, err := database.Redis.GetMessages(qq, int(fromIdInt))
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("从数据库获取消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！从数据库获取消息失败呜呜呜",
 			})
@@ -448,15 +415,11 @@ func MessageParse(c echo.Context) error {
 		})
 		ansTmp, err := llmService.SendMessage(config.Config.AppConfig.Llm.Secret, messageSend)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("发送消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！发送消息失败呜呜呜",
 			})
 		}
 		newMessage := &database.Message{
-			Token:  util.GenerateUUID(),
 			FromId: int(fromIdInt),
 			ToId:   qq,
 			Text:   message,
@@ -464,15 +427,11 @@ func MessageParse(c echo.Context) error {
 		}
 		err = database.Redis.AddNewMessage(newMessage)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("存储消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！存储消息失败呜呜呜",
 			})
 		}
 		newMessage = &database.Message{
-			Token:  util.GenerateUUID(),
 			FromId: qq,
 			ToId:   int(fromIdInt),
 			Text:   ansTmp,
@@ -480,9 +439,6 @@ func MessageParse(c echo.Context) error {
 		}
 		err = database.Redis.AddNewMessage(newMessage)
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("存储消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！存储消息失败呜呜呜",
 			})
@@ -494,9 +450,6 @@ func MessageParse(c echo.Context) error {
 			err = SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
 		}
 		if err != nil {
-			log.Log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("回复消息失败")
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！回复消息失败呜呜呜",
 			})
@@ -566,5 +519,27 @@ func matchGithubDel(input string) ([]string, bool) {
 			return fields, true
 		}
 	}
+	return nil, false
+}
+
+// matchWeatherSet 检查字符串是否符合 "/weather-set <city> <location>" 模式，并返回匹配后的非空格字符串切片和匹配结果
+func matchWeatherSet(input string) ([]string, bool) {
+	// 编译正则表达式，用于确保格式正确，只有两个字符串跟随 `/weather-set`
+	regex, err := regexp.Compile(`^/weather-set\s+(\S+)\s+(\S+)$`)
+	if err != nil {
+		fmt.Println("Invalid regex:", err)
+		return nil, false
+	}
+	// 检查字符串是否精确匹配正则表达式
+	if regex.MatchString(input) {
+		// 使用 FindStringSubmatch 获取所有匹配的部分，其中第一个元素是整个匹配，后续元素是捕获的子表达式
+		matches := regex.FindStringSubmatch(input)
+		// 检查是否确实有两个捕获组（加上整个匹配的元素共三个）
+		if len(matches) == 3 {
+			// 返回捕获的字符串和 true
+			return matches[1:], true
+		}
+	}
+	// 如果不符合正则表达式，或捕获组数量不对，返回空切片和 false
 	return nil, false
 }

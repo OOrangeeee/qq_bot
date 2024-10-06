@@ -8,5 +8,11 @@
     "pro-dsn": "redis://redis:6379",
     "num-of-worker": 128,
     "task-channel-size": 64
+  },
+  "github": {
+    "api-url": "https://api.github.com"
+  },
+  "gaode": {
+    "di-li-code-url": "https://restapi.amap.com/v3/geocode/geo"
   }
 }
