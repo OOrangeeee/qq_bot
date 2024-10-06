@@ -11,7 +11,6 @@ type Message struct {
 	ToId   int       `gorm:"not null"`
 	Text   string    `gorm:"not null"`
 	Time   time.Time `gorm:"not null"`
-	Name   string    `gorm:"not null;unique"`
 }
 
 func (m *Message) Add() error {
