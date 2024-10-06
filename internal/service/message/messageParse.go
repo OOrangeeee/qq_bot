@@ -70,6 +70,64 @@ func MessageParse(c echo.Context) error {
 			ans += ansTmp
 			ans += "-\n"
 		}
+		ans += "+++++"
+		if message_type == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		} else {
+			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), ans)
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("回复消息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
+	} else if strings.EqualFold(message, "/gb-get-all") {
+		var ans string
+		if message_type == "group" {
+			ans += "[CQ:at,qq=" + fromId + "]\n"
+		}
+		names, err := database.Redis.GetAllReposNames()
+		if err != nil {
+			log.Log.WithFields(logrus.Fields{
+				"error": err.Error(),
+			}).Error("获取所有仓库名失败")
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！获取所有仓库名失败呜呜呜",
+			})
+		}
+		for _, name := range names {
+			ans += fmt.Sprintf("+++++\n%s\n", name)
+			repo, err := database.Redis.GetRepo(name)
+			if err != nil {
+				log.Log.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Error("获取仓库信息失败")
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！获取仓库信息失败呜呜呜",
+				})
+			}
+			ansTmp, err := githubService.GetInfoOfRepo(repo.RepoName, repo.Url)
+			if err != nil {
+				ans += fmt.Sprintf("获取仓库 %s 信息失败, Url为 %s \n", repo.RepoName, repo.Url)
+				ans += "\n"
+				continue
+			}
+			ans += ansTmp
+			ans += "-\n"
+		}
+		ans += "+++++"
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
@@ -142,6 +200,7 @@ func MessageParse(c echo.Context) error {
 		for _, name := range allNames {
 			ans += fmt.Sprintf("+++++\n%s\n", name)
 		}
+		ans += "+++++"
 		if message_type == "group" {
 			err = SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
@@ -195,6 +254,7 @@ func MessageParse(c echo.Context) error {
 			ans += fmt.Sprintf("+++++\n删除仓库 %s 信息成功\n+++++\n", repoName)
 			ans += "-\n"
 		}
+		ans += "+++++"
 		if message_type == "group" {
 			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), ans)
 			if err != nil {
