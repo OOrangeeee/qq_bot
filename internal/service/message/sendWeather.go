@@ -25,7 +25,7 @@ func SendWeatherMessage() {
 	for {
 		now := time.Now().In(location)
 		// 计算下一个7点的时间
-		next7AM := time.Date(now.Year(), now.Month(), now.Day(), 4, 16, 0, 0, location)
+		next7AM := time.Date(now.Year(), now.Month(), now.Day(), 7, 0, 0, 0, location)
 		if now.After(next7AM) { // 如果当前时间已经过了今天的7点
 			next7AM = next7AM.Add(24 * time.Hour) // 设置下一个7点为明天的7点
 		}
@@ -98,7 +98,7 @@ func SendWeatherMessage() {
 			}
 			sentToday = true
 		}
-		if now.Hour() == 5 { // 如果当前时间是7点
+		if now.Hour() == 8 { // 如果当前时间是7点
 			sentToday = false
 		}
 	}
