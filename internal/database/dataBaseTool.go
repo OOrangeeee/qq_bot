@@ -17,10 +17,8 @@ type Record interface {
 	Add() error
 	Delete() error
 	Update() error
-	GetByToken(token string) error
 	GetByStr(str string, value string) error
 	GetAll() (*[]Record, error)
-	GetTokenByStr(str string, value string) (string, error)
 }
 
 var DB DataBaseTool

@@ -6,7 +6,6 @@ import (
 
 type GbRepos struct {
 	gorm.Model
-	Token    string `gorm:"unique;not null;column:token"`
 	RepoName string `gorm:"unique;not null;column:repo_name"`
 	Url      string `gorm:"not null;column:url"`
 }
@@ -21,7 +20,6 @@ func (gb *GbRepos) Delete() error {
 
 func (gb *GbRepos) Update() error {
 	return DB.DataBase.Model(&GbRepos{}).Where("id = ?", gb.ID).Updates(map[string]interface{}{
-		"token":     gb.Token,
 		"repo_name": gb.RepoName,
 		"url":       gb.Url,
 	}).Error
@@ -32,22 +30,6 @@ func (gb *GbRepos) GetByStr(str string, value string) error {
 	*gb = GbRepos{}
 	var repos []*GbRepos
 	result := DB.DataBase.Find(&repos, str+" = ?", value)
-	if result.Error != nil {
-		return result.Error
-	}
-	if len(repos) <= 0 {
-		// 返回没有找到错误
-		return gorm.ErrRecordNotFound
-	}
-	*gb = *repos[0]
-	return nil
-}
-
-func (gb *GbRepos) GetByToken(token string) error {
-	// 清空结构体
-	*gb = GbRepos{}
-	var repos []*GbRepos
-	result := DB.DataBase.Find(&repos, "token = ?", token)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -70,19 +52,4 @@ func (gb *GbRepos) GetAll() (*[]Record, error) {
 		records = append(records, repo)
 	}
 	return &records, nil
-}
-
-func (gb *GbRepos) GetTokenByStr(str string, value string) (string, error) {
-	// 清空结构体
-	*gb = GbRepos{}
-	var repos []*GbRepos
-	result := DB.DataBase.Find(&repos, str+" = ?", value)
-	if result.Error != nil {
-		return "", result.Error
-	}
-	if len(repos) <= 0 {
-		// 返回没有找到错误
-		return "", gorm.ErrRecordNotFound
-	}
-	return repos[0].Token, nil
 }

@@ -8,6 +8,7 @@ type AppConfig struct {
 	Character character      `json:"character"`
 	Llm       llm            `json:"llm"`
 	QQ        qqConfig       `json:"qq"`
+	Gaode     gaode          `json:"gaode"`
 }
 
 type hmac struct {
@@ -46,4 +47,9 @@ type qqConfig struct {
 	BotUrl   string `json:"bot-url"`
 	BotToken string `json:"bot-token"`
 	BotQQ    string `json:"bot-qq"`
+}
+
+type gaode struct {
+	Key         string `json:"key"`
+	DiLiCodeUrl string `json:"di-li-code-url"`
 }
