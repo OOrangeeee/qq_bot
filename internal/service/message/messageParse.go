@@ -401,8 +401,6 @@ func MessageParse(c echo.Context) error {
 				Role:    "user",
 				Content: config.Config.AppConfig.Llm.VipMessage,
 			})
-		} else {
-			return c.JSON(http.StatusOK, map[string]interface{}{})
 		}
 		cityInfo, err := database.Redis.GetCity(city)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -449,24 +447,6 @@ func MessageParse(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！回复消息失败呜呜呜",
 			})
-		}
-		return c.JSON(http.StatusOK, map[string]interface{}{})
-	} else if strings.EqualFold(message, "/start") {
-		go SendWeatherMessage()
-		if messageType == "group" {
-			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), "[CQ:at,qq="+fromId+"]\n"+"橙子报告！开始发送天气消息！！！")
-			if err != nil {
-				return c.JSON(http.StatusOK, map[string]interface{}{
-					"reply": "橙子报告！回复消息失败呜呜呜",
-				})
-			}
-		} else {
-			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), "橙子报告！开始发送天气消息！！！")
-			if err != nil {
-				return c.JSON(http.StatusOK, map[string]interface{}{
-					"reply": "橙子报告！回复消息失败呜呜呜",
-				})
-			}
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else {
@@ -529,8 +509,8 @@ func MessageParse(c echo.Context) error {
 				})
 			}
 			length := len(*getMessages)
-			if length > 5 {
-				length = 5
+			if length > 3 {
+				length = 3
 			}
 			for i := length - 1; i >= 0; i-- {
 				messageTmp1 := (*getMessages)[i]

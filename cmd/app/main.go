@@ -5,6 +5,7 @@ import (
 	"GitHubBot/internal/database"
 	"GitHubBot/internal/log"
 	"GitHubBot/internal/route"
+	service "GitHubBot/internal/service/message"
 	"flag"
 	"github.com/labstack/echo/v4"
 	"os"
@@ -24,5 +25,6 @@ func main() {
 	database.InitRedis()
 	defer database.Redis.Exit()
 	route.Route(e)
+	go service.SendWeatherMessage()
 	e.Logger.Fatal(e.Start(":2077"))
 }
