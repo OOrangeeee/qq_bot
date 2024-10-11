@@ -385,6 +385,23 @@ func MessageParse(c echo.Context) error {
 		if messageType == "group" {
 			ans += "[CQ:at,qq=" + fromId + "]\n"
 		}
+		cityInfo, err := database.Redis.GetCity(city)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！从数据库获取城市信息失败呜呜呜",
+			})
+		} else if errors.Is(err, gorm.ErrRecordNotFound) || cityInfo == nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！数据库中没有城市信息呜呜呜",
+			})
+		}
+		code := cityInfo.DiLiCode
+		weatherInfo, err := weatherService.GetWeather(code, "all")
+		if err != nil {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"reply": "橙子报告！获取天气信息失败呜呜呜",
+			})
+		}
 		var messageSend []llmService.Message
 		messageSend = make([]llmService.Message, 0)
 		messageSend = append(messageSend, llmService.Message{
@@ -406,24 +423,16 @@ func MessageParse(c echo.Context) error {
 					Role:    "user",
 					Content: config.Config.AppConfig.Llm.VipMessage,
 				})
+				messageSend = append(messageSend, llmService.Message{
+					Role:    "user",
+					Content: weatherInfo + config.Config.AppConfig.Llm.WeatherMessageVip,
+				})
+			} else {
+				messageSend = append(messageSend, llmService.Message{
+					Role:    "user",
+					Content: weatherInfo + config.Config.AppConfig.Llm.WeatherMessage,
+				})
 			}
-		}
-		cityInfo, err := database.Redis.GetCity(city)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"reply": "橙子报告！从数据库获取城市信息失败呜呜呜",
-			})
-		} else if errors.Is(err, gorm.ErrRecordNotFound) || cityInfo == nil {
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"reply": "橙子报告！数据库中没有城市信息呜呜呜",
-			})
-		}
-		code := cityInfo.DiLiCode
-		weatherInfo, err := weatherService.GetWeather(code, "all")
-		if err != nil {
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"reply": "橙子报告！获取天气信息失败呜呜呜",
-			})
 		}
 		messageSend = append(messageSend, llmService.Message{
 			Role:    "user",

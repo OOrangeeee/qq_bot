@@ -254,6 +254,7 @@ func (c *configCenter) GetAppConfig() error {
 	appConfig.Llm.Version = secrets["llm_version"]
 	appConfig.Gaode.Key = secrets["gaode_key"]
 	appConfig.Llm.WeatherMessage = secrets["llm_weather_message"]
+	appConfig.Llm.WeatherMessageVip = secrets["llm_weather_message_vip"]
 	// 判断appConfig是否符合要求
 	if !c.verifyConfig(&appConfig) {
 		log.Log.WithFields(logrus.Fields{
