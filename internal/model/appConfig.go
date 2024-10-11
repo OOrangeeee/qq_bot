@@ -37,11 +37,12 @@ type character struct {
 }
 
 type llm struct {
-	Secret         string `json:"secret"`
-	VipQQ          string `json:"vipqq"`
-	VipMessage     string `json:"vip-message"`
-	Version        string `json:"version"`
-	WeatherMessage string `json:"weather-message"`
+	Secret            string `json:"secret"`
+	VipQQ             string `json:"vipqq"`
+	VipMessage        string `json:"vip-message"`
+	Version           string `json:"version"`
+	WeatherMessageVip string `json:"weather-message-vip"`
+	WeatherMessage    string `json:"weather-message"`
 }
 
 type qqConfig struct {
