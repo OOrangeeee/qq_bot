@@ -381,26 +381,32 @@ func MessageParse(c echo.Context) error {
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else if city, ok := matchChatWeatherGet(message); ok {
+		var ans string
+		if messageType == "group" {
+			ans += "[CQ:at,qq=" + fromId + "]\n"
+		}
 		var messageSend []llmService.Message
 		messageSend = make([]llmService.Message, 0)
 		messageSend = append(messageSend, llmService.Message{
 			Role:    "user",
 			Content: config.Config.AppConfig.Character.Describe,
 		})
-		vipStr := config.Config.AppConfig.Llm.VipQQ
-		vips := strings.Split(vipStr, ",")
-		isVip := false
-		for _, vip := range vips {
-			if vip == fromId {
-				isVip = true
-				break
+		if messageType != "group" {
+			vipStr := config.Config.AppConfig.Llm.VipQQ
+			vips := strings.Split(vipStr, ",")
+			isVip := false
+			for _, vip := range vips {
+				if vip == fromId {
+					isVip = true
+					break
+				}
 			}
-		}
-		if isVip {
-			messageSend = append(messageSend, llmService.Message{
-				Role:    "user",
-				Content: config.Config.AppConfig.Llm.VipMessage,
-			})
+			if isVip {
+				messageSend = append(messageSend, llmService.Message{
+					Role:    "user",
+					Content: config.Config.AppConfig.Llm.VipMessage,
+				})
+			}
 		}
 		cityInfo, err := database.Redis.GetCity(city)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -418,14 +424,6 @@ func MessageParse(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"reply": "橙子报告！获取天气信息失败呜呜呜",
 			})
-		}
-		var ans string
-		if messageType == "group" {
-			if strings.Contains(message, "[CQ:at,qq="+config.Config.AppConfig.QQ.BotQQ+"]") {
-				ans += "[CQ:at,qq=" + fromId + "]\n"
-			} else {
-				return c.JSON(http.StatusOK, map[string]interface{}{})
-			}
 		}
 		messageSend = append(messageSend, llmService.Message{
 			Role:    "user",
