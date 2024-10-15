@@ -63,7 +63,7 @@ func SendWeatherMessage() {
 				var messageSend []llmService.Message
 				messageSend = make([]llmService.Message, 0)
 				messageSend = append(messageSend, llmService.Message{
-					Role:    "user",
+					Role:    "system",
 					Content: config.Config.AppConfig.Character.Describe,
 				})
 				vipStr := config.Config.AppConfig.Llm.VipQQ
