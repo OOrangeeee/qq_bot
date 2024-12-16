@@ -107,7 +107,6 @@ func GetJsonInfoOfRepo(owner, repo string) (string, error) {
 	// 得到返回结果结构体
 	jsonInfo := GitHubHelperInfoForJson{
 		Name:  repo,
-		Url:   url,
 		Owner: owner,
 		MainBranch: GitHubHelperMainBranchForJson{
 			Name:             prioritizedBranch,
