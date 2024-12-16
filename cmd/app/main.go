@@ -7,8 +7,9 @@ import (
 	"GitHubBot/internal/route"
 	service "GitHubBot/internal/service/message"
 	"flag"
-	"github.com/labstack/echo/v4"
 	"os"
+
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
