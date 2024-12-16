@@ -10,14 +10,15 @@ import (
 	weatherService "GitHubBot/internal/service/weather"
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 func MessageParse(c echo.Context) error {
@@ -456,6 +457,33 @@ func MessageParse(c echo.Context) error {
 			})
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{})
+	} else if strings.EqualFold(message, "/help") {
+		var sb strings.Builder
+		sb.WriteString("/gb-get {repos name}: 获得所有输入的仓库名称的最新信息\n")
+		sb.WriteString("/gb-get-all: 获得所有跟踪了的仓库的最新信息\n")
+		sb.WriteString("/gb-set {repo name} {GitHub URL}: 添加一个仓库信息，name可以自己设置，github url是仓库URL\n")
+		sb.WriteString("/gb-get-names: 获得所有跟踪了的仓库的名称\n")
+		sb.WriteString("/gb-del {repos name}: 删除仓库信息\n")
+		sb.WriteString("/chat-clear: 清空聊天记录\n")
+		sb.WriteString("/weather-set {city name} {location}: 添加一个城市信息，city是城市名，location是城市的具体位置\n")
+		sb.WriteString("/weather-get {citys name}: 获得城市的天气信息\n")
+		sb.WriteString("/chat-weather-get {city name}: 获得城市的天气信息并发送给聊天机器人\n")
+		if messageType == "group" {
+			err := SendMessageToQQ("group", int(fromIdInt), int(groupIdInt), sb.String())
+			if err != nil {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		} else {
+			err := SendMessageToQQ("private", int(fromIdInt), int(groupIdInt), sb.String())
+			if err != nil {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"reply": "橙子报告！回复消息失败呜呜呜",
+				})
+			}
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	} else {
 		// 转化qq为整数
 		qq, err := strconv.Atoi(config.Config.AppConfig.QQ.BotQQ)
@@ -667,7 +695,7 @@ func matchWeatherSet(input string) ([]string, bool) {
 	return nil, false
 }
 
-// matchWeatherGet 检查字符串是否符合 "/gb-get *****" 模式，并返回匹配后的非空格字符串切片和匹配结果
+// matchWeatherGet 检查字符串是否符合 "/weather-get *****" 模式，并返回匹配后的非空格字符串切片和匹配结果
 func matchWeatherGet(input string) ([]string, bool) {
 	// 编译正则表达式，用于捕获非空格字符串
 	regex, err := regexp.Compile(`^/weather-get\s+(.+)$`)
