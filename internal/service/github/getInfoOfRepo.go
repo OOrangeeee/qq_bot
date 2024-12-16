@@ -52,7 +52,6 @@ type GitHubHelperBranchForJson struct {
 // GitHubHelperInfoForJson 定义返回的 JSON 结构
 type GitHubHelperInfoForJson struct {
 	Name       string                        `json:"RepoName"`
-	Url        string                        `json:"RepoUrl"`
 	Owner      string                        `json:"Owner"`
 	MainBranch GitHubHelperMainBranchForJson `json:"MainBranch"`
 	Branches   []GitHubHelperBranchForJson   `json:"Branches"`
