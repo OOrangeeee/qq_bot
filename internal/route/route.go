@@ -1,7 +1,9 @@
 package route
 
 import (
-	controller "GitHubBot/internal/controller/event"
+	controllerEvent "GitHubBot/internal/controller/event"
+	controllerGithubHelper "GitHubBot/internal/controller/githubHelper"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,10 +15,12 @@ func Route(e *echo.Echo) {
 }
 
 func getRoute(e *echo.Echo) {
+	e.GET("/start", controllerGithubHelper.Start)
+	e.GET("/getRepoInfo", controllerGithubHelper.GetRepoInfo)
 }
 
 func postRoute(e *echo.Echo) {
-	e.POST("/event", controller.SolveEvent)
+	e.POST("/event", controllerEvent.SolveEvent)
 }
 
 func putRoute(e *echo.Echo) {

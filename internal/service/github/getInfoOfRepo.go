@@ -5,11 +5,12 @@ import (
 	"GitHubBot/internal/log"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // CommitInfo 定义提交信息的结构
@@ -33,6 +34,94 @@ type Branch struct {
 		Sha string `json:"sha"`
 		URL string `json:"url"`
 	} `json:"commit"`
+}
+
+type GitHubHelperMainBranchForJson struct {
+	Name             string `json:"MainBranchName"`
+	CommitNum        int    `json:"MainBranchCommitNum"`
+	LatestCommitTime string `json:"MainBranchLatestCommitTime"`
+	MainContributor  string `json:"MainContributor"`
+}
+
+type GitHubHelperBranchForJson struct {
+	Name             string `json:"BranchName"`
+	LatestCommitMsg  string `json:"LatestCommitMsg"`
+	LatestCommitTime string `json:"LatestCommitTime"`
+}
+
+// GitHubHelperInfoForJson 定义返回的 JSON 结构
+type GitHubHelperInfoForJson struct {
+	Name       string                        `json:"RepoName"`
+	Url        string                        `json:"RepoUrl"`
+	Owner      string                        `json:"Owner"`
+	MainBranch GitHubHelperMainBranchForJson `json:"MainBranch"`
+	Branches   []GitHubHelperBranchForJson   `json:"Branches"`
+}
+
+func GetJsonInfoOfRepo(url string) (string, error) {
+	// 从 url 中提取 owner 和 repo 信息
+	owner, repo := extractOwnerRepo(url)
+	// 获取所有分支信息
+	branches, err := getBranches(owner, repo)
+	if err != nil {
+		return "", err
+	}
+	// 优先处理 main 和 master 分支
+	prioritizedBranch, branches := prioritizeMainOrMasterBranch(branches)
+	// 获取所有提交信息
+	commits, err := getAllCommits(owner, repo)
+	if err != nil {
+		return "", err
+	}
+	// 统计仓库的提交总数
+	commitNum := len(commits)
+
+	// 计算最新提交时间
+	latestCommitTime := getLatestCommitFromCommits(commits)
+
+	// 将最新提交时间转换为中国大陆时间
+	loc, _ := time.LoadLocation("Asia/Shanghai")
+	latestCommitTimeInChina := latestCommitTime.In(loc)
+
+	// 获取仓库贡献最多的提交者
+	mainContributor := getMainContributorFromCommits(commits)
+
+	jsonBranches := make([]GitHubHelperBranchForJson, 0)
+
+	for _, branch := range branches {
+		lastCommitMsg, lastCommitDate, err := getBranchCommitInfo(branch.Commit.URL)
+		if err != nil {
+			return "", err
+		}
+		// 将最后一次提交时间转换为中国大陆时间
+		lastCommitDateInChina := lastCommitDate.In(loc)
+		jsonBranches = append(jsonBranches, GitHubHelperBranchForJson{
+			Name:             branch.Name,
+			LatestCommitMsg:  lastCommitMsg,
+			LatestCommitTime: lastCommitDateInChina.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	// 得到返回结果结构体
+	jsonInfo := GitHubHelperInfoForJson{
+		Name:  repo,
+		Url:   url,
+		Owner: owner,
+		MainBranch: GitHubHelperMainBranchForJson{
+			Name:             prioritizedBranch,
+			CommitNum:        commitNum,
+			LatestCommitTime: latestCommitTimeInChina.Format("2006-01-02 15:04:05"),
+			MainContributor:  mainContributor,
+		},
+		Branches: jsonBranches,
+	}
+
+	// 将结果结构体转换为 JSON 字符串
+	jsonBytes, err := json.Marshal(jsonInfo)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
 }
 
 func GetInfoOfRepo(name, url string) (string, error) {
