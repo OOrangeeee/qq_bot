@@ -58,22 +58,18 @@ type GitHubHelperInfoForJson struct {
 	Branches   []GitHubHelperBranchForJson   `json:"Branches"`
 }
 
-func GetJsonInfoOfRepo(owner, repo string) (string, error) {
-	log.Log.WithFields(logrus.Fields{
-		"owner": owner,
-		"repo":  repo,
-	}).Info("owner and repo extracted")
+func GetJsonInfoOfRepo(owner, repo string) (*GitHubHelperInfoForJson, error) {
 	// 获取所有分支信息
 	branches, err := getBranches(owner, repo)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// 优先处理 main 和 master 分支
 	prioritizedBranch, branches := prioritizeMainOrMasterBranch(branches)
 	// 获取所有提交信息
 	commits, err := getAllCommits(owner, repo)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// 统计仓库的提交总数
 	commitNum := len(commits)
@@ -93,7 +89,7 @@ func GetJsonInfoOfRepo(owner, repo string) (string, error) {
 	for _, branch := range branches {
 		lastCommitMsg, lastCommitDate, err := getBranchCommitInfo(branch.Commit.URL)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		// 将最后一次提交时间转换为中国大陆时间
 		lastCommitDateInChina := lastCommitDate.In(loc)
@@ -116,13 +112,7 @@ func GetJsonInfoOfRepo(owner, repo string) (string, error) {
 		},
 		Branches: jsonBranches,
 	}
-
-	// 将结果结构体转换为 JSON 字符串
-	jsonBytes, err := json.Marshal(jsonInfo)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonBytes), nil
+	return &jsonInfo, nil
 }
 
 func GetInfoOfRepo(name, url string) (string, error) {
