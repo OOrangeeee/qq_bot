@@ -10,14 +10,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"reflect"
 	"strings"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/sirupsen/logrus"
 )
 
 type configCenter struct {
@@ -75,6 +76,9 @@ func (c *configCenter) initMiddleware(e *echo.Echo) {
 
 func HMACMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if c.Request().Method == http.MethodGet {
+			return next(c)
+		}
 		bodyBytes, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
