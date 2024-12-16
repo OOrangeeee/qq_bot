@@ -24,6 +24,6 @@ func GetRepoInfo(c echo.Context) error {
 
 	}
 	return c.JSON(200, map[string]interface{}{
-		"RepoInfo": ans,
+		"RepoInfo": *ans,
 	})
 }
