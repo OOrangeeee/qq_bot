@@ -16,6 +16,7 @@ func Route(e *echo.Echo) {
 
 func getRoute(e *echo.Echo) {
 	e.GET("/start", controllerGithubHelper.Start)
+	e.GET("/getRepoInfo", controllerGithubHelper.GetRepoInfo)
 }
 
 func postRoute(e *echo.Echo) {
