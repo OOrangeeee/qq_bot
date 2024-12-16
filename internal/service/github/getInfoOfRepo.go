@@ -58,9 +58,11 @@ type GitHubHelperInfoForJson struct {
 	Branches   []GitHubHelperBranchForJson   `json:"Branches"`
 }
 
-func GetJsonInfoOfRepo(url string) (string, error) {
-	// 从 url 中提取 owner 和 repo 信息
-	owner, repo := extractOwnerRepo(url)
+func GetJsonInfoOfRepo(owner, repo string) (string, error) {
+	log.Log.WithFields(logrus.Fields{
+		"owner": owner,
+		"repo":  repo,
+	}).Info("owner and repo extracted")
 	// 获取所有分支信息
 	branches, err := getBranches(owner, repo)
 	if err != nil {
@@ -314,6 +316,9 @@ func getBranchCommitInfo(commitURL string) (string, time.Time, error) {
 
 // makeGitHubRequest 封装 API 请求
 func makeGitHubRequest(url string) ([]byte, error) {
+	log.Log.WithFields(logrus.Fields{
+		"url": url,
+	}).Info("making request to GitHub API")
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

@@ -11,8 +11,7 @@ import (
 func GetRepoInfo(c echo.Context) error {
 	repoName := c.QueryParam("repoName")
 	owner := c.QueryParam("owner")
-	url := "https://github.com/" + owner + "/" + repoName
-	ans, err := service.GetJsonInfoOfRepo(url)
+	ans, err := service.GetJsonInfoOfRepo(owner, repoName)
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error":   err.Error(),
