@@ -15,7 +15,7 @@ import (
 
 // SendWeatherMessage 每到北京时间早上七点，发送天气预报
 func SendWeatherMessage() {
-	location, err := time.LoadLocation("Asia/Shanghai") // 加载北京时间时区
+	location, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
 		log.Log.WithFields(logrus.Fields{
 			"error": err.Error(),
@@ -23,39 +23,24 @@ func SendWeatherMessage() {
 		return
 	}
 
-	var lastSentDay int // 记录上次发送消息的日期
+	var lastSentDay int
+	ticker := time.NewTicker(time.Minute) // 使用较短的检查间隔
+	defer ticker.Stop()
 
-	now := time.Now().In(location)
-	currentDay := now.Day() // 获取今天的日期
-
-	// 计算下一个7点的时间
-	next7AM := time.Date(now.Year(), now.Month(), now.Day(), 7, 0, 0, 0, location)
-	if now.After(next7AM) { // 如果当前时间已经过了今天的7点
-		log.Log.Info("当前时间已经过了今天的7点，设置下一个7点为明天的7点")
-		next7AM = next7AM.Add(24 * time.Hour) // 设置下一个7点为明天的7点
-	}
-
-	// 睡眠直到下一个7点
-	log.Log.Info("当前时间没到七点")
-	sleepDuration := next7AM.Sub(now)
-	log.Log.WithFields(logrus.Fields{
-		"sleepDuration": sleepDuration,
-	}).Info("进入睡眠等待下一个7点")
-	time.Sleep(sleepDuration)
-	log.Log.Info("睡眠结束，开始发送天气预报")
-	sendWeaatherMessage := func(lastSendDay int) int {
-		currentDay = now.Day() // 获取今天的日期
-		// 如果日期改变了，或者今天还没有发送
-		if currentDay != lastSentDay {
-			log.Log.Info("发送天气预报")
+	for {
+		now := time.Now().In(location)
+		if now.Hour() == 7 && now.Minute() == 0 && now.Day() != lastSentDay {
+			log.Log.Info("开始发送天气预报")
 			cities, err := database.Redis.GetAllCities()
 			if err != nil {
 				log.Log.WithFields(logrus.Fields{
 					"error": err.Error(),
 				}).Error("获取城市列表失败")
+				continue
 			}
 			if len(*cities) == 0 {
 				log.Log.Info("没有城市需要发送天气预报")
+				continue
 			}
 			for _, city := range *cities {
 				var messageSend []llmService.Message
@@ -115,20 +100,9 @@ func SendWeatherMessage() {
 					}
 				}
 			}
-			// 成功发送后，记录今天的日期，避免重复发送
-			lastSentDay = currentDay
-		} else {
-			log.Log.Info("今天的天气预报已经发送过，跳过")
+			lastSentDay = now.Day()
+			log.Log.Info("天气预报发送完成")
 		}
-		return lastSendDay
+		<-ticker.C
 	}
-
-	lastSentDay = sendWeaatherMessage(lastSentDay)
-	tricker := time.NewTicker(24 * time.Hour)
-	defer tricker.Stop()
-	go func(tricker *time.Ticker) {
-		for range tricker.C {
-			lastSentDay = sendWeaatherMessage(lastSentDay)
-		}
-	}(tricker)
 }
